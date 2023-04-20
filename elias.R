@@ -1,3 +1,6 @@
-elias = 7
-print(elias-1)
+a = 6 
+b = 4 
+n = 123
+fdj = 2948
+
 
