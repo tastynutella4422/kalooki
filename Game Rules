@@ -1,0 +1,58 @@
+Kalooki Instructions
+
+2 decks of cards for 4 players, add a deck for every 2 people added after that
+(program could be a 4 player game or ask user how many players 4 or greater?)
+
+Set of Three: 3 or more cards of the same rank (suit doesn't matter, can have duplicates)
+Run of Four: 4 or more consecutive cards in the same suit (ex. 8,9,10,J of hearts)
+Aces can be used as a 1 or as a 14 (after king)
+Jokers can be used as wild cards to sub in for any card in a 3 or 4, but you can't use 4 Jokers as a 4. Also need to have at least 2 non-joker cards in any set of 3.
+
+Dealer chosen at random - begin with dealing 12 cards to each person for the first round, and increase number of cards by 1 each round. All leftover cards are placed in the middle with the top card turned over.
+
+Player to the left of the dealer begins play, and then rotate clockwise
+
+Overall Game Flow:
+1. Draw one card from the top of the discard pile or from the face-down stock pile
+2. Lay down any sets/runs that are being collected that round
+3. Discard any one card face up in the discard pile (except Jokers)
+    - Person to the left of the active player has first dibs on the top card in the discard pile, but other players can "call" that card if the left player allows it. 
+    - If any player other than the left player takes that card, they also have to pick up a penalty card from the top of the stock pile
+    - Only one call per turn (can't call the card under the top card)
+    - Each player gets 3 calls per game
+    - If a player has laid down any cards (run or set), they can no longer call
+4. Continue until one player runs out of cards
+5. Repeat steps 1-4 for 9 rounds - whoever has the lowest score at the end of the 9th round wins
+
+How to Lay Down Cards (Step 2)
+- After drawing one card, can lay down any cards that fulfill the requirements for that round (ie. set of 3, run of 4)
+- Lay down the cards face up in front of you on the table
+- For multiple 3s, all have to be different ranks. For multiple 4s, all have to be different suits
+
+Tacking On to Laid Down Cards
+- After you or someone else has laid down cards, in the same turn or later turns you can tack on cards to add to your own/their set or extend the run 
+- For 4s, first have to tack on cards with higher rank until you reach Ace, then can tack on cards with lower rank
+- This would occur during step 2
+- Can't put two jokers side by side in a 4
+
+Running Out of Stock Cards
+- Reshuffle discard pile, except for top card, and place deck face-down to form new stock
+- If stock runs out second time, play ends with no score (people are withholding cards unfairly)
+
+Rounds: 
+- Three 3s (12 cards)
+- Two 3s, One 4 (12 cards)
+- Two 4s, One 3 (12 cards)
+- Three 4s (12 cards)
+- Four 3s (12 cards)
+- Three 3s, One 4 (13 cards)
+- Two 3s, Two 4s (14 cards)
+- One 3, Three 4s (15 cards)
+- Four 4s (16 cards)
+
+Cards Values (to add up at the end):
+- Jokers: 50 pts
+- Black Ace: 15 pts
+- King, Queen, Jack, 10: 10 pts
+- 2 to 9: face value
+- Red Ace: 1 pt
