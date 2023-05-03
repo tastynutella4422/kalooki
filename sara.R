@@ -18,7 +18,16 @@ total.jokers = data.frame(faces,suits)
 deck = rbind(deck,total.jokers)
 
 #Deal Function (num cards dealt as parameter)
-
 deal = function(n) {
   sample_n(deck,n,replace=F)
+}
+
+#Beginning of each round setup - dealing & discard pile
+setup = function(n) {
+  num.cards = n
+  p1.hand = deal(num.cards)
+  p2.hand = deal(num.cards)
+  top.card = sample_n(deck,1,replace=F)
+  print(top.card)
+  return(list(v1=p1.hand, v2=p2.hand))
 }
