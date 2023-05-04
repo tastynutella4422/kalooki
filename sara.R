@@ -27,7 +27,6 @@ deal = function(n, deck) {
   return(list(v1=dealt.cards, v2=remaining.cards))
 }
 
-
 #Beginning of each round setup - dealing & discard pile
 setup = function(n, deck) {
   num.cards = n
@@ -46,5 +45,4 @@ setup = function(n, deck) {
 #Round 1: Three 3s
 round1 = function(n, deck) {
   init.cards = setup(n, deck)
-  
 }
