@@ -40,6 +40,11 @@ setup = function(n, deck) {
   top.card = remaining[sample(nrow(remaining), 1),]
   stock.pile = anti_join(remaining,top.card, by="order")
   print(top.card)
-  return(list(v1=p1.hand, v2=p2.hand, v3=stock.pile))
+  return(list(v1=p1.hand, v2=p2.hand, v3=top.card, v4=stock.pile))
 }
 
+#Round 1: Three 3s
+round1 = function(n, deck) {
+  init.cards = setup(n, deck)
+  
+}
