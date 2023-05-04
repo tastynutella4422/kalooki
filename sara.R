@@ -42,7 +42,29 @@ setup = function(n, deck) {
   return(list(v1=p1.hand, v2=p2.hand, v3=top.card, v4=stock.pile))
 }
 
+
 #Round 1: Three 3s
-round1 = function(n, deck) {
-  init.cards = setup(n, deck)
+
+init.cards = setup(12, deck)
+p1.hand = init.cards$v1
+p2.hand = init.cards$v2
+top.discard = init.cards$v3
+stock.pile = init.cards$v4
+choose = runif(1)
+if (choose <= .5) {
+  cat("Player 1 goes first")
+  first.player = p1.hand
+  second.player = p2.hand
+} else {
+  cat("Player 2 goes first")
+  first.player = p2.hand
+  second.player = p1.hand
 }
+discard.stock = runif(1)
+if (discard.stock <= .5) {
+  first.player = rbind(first.player,top.discard)
+  top.discard = NULL
+} else {
+  first.player = rbind(first.player,)
+}
+
