@@ -43,6 +43,26 @@ setup = function(n, deck) {
 }
 
 #Round 1: Three 3s
-round1 = function(n, deck) {
-  init.cards = setup(n, deck)
+
+init.cards = setup(12, deck)
+p1.hand = init.cards$v1
+p2.hand = init.cards$v2
+top.card = init.cards$v3
+stock.pile = init.cards$v4
+
+
+choose = runif(1)
+whogoesfirst = p1
+if(choose <.5) {
+  print("player 1 chooses first")
+  whogoesfirst = 'p1'
+} else {
+  print("player 2 chooses first")
+  whogoesfirst = 'p2'
+}
+discard.stock = runif(1)
+if(discard.stock < .5) {
+  cat("Player", whogoesfirst, "chooses from the stock pile")
+} else {
+  cat("Player", whogoesfirst, "chooses from the discard pile")
 }
