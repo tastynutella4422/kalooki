@@ -95,6 +95,8 @@ if (discard.stock <= .5) {
 #using face.names from above to keep track of the counts
 p1.faces = first.player$faces
 face.counts = rep(0,13)
+set.of.three = c()
+set.of.two = c()
 for (i in 1:length(p1.faces)) {
   for (j in 1:length(p1.faces)) {
     if (face.names[i] == p1.faces[j]) {
@@ -103,8 +105,19 @@ for (i in 1:length(p1.faces)) {
   }
 }
 for (k in 1:length(face.counts)) {
+  if (face.counts[k] == 2) {
+    set.of.two = append(set.of.two,face.names[k])
+  }
   if (face.counts[k] >= 3) {
-    set.of.three = face.names[k]
+    set.of.three = append(set.of.three,face.names[k])
   } 
-  
 }
+
+laid.down.cards = data.frame()
+for (i in 1:length(set.of.three)) {
+  dups = set.of.three[i]
+  laid.down.cards = filter(first.player, faces %in% dups)
+}
+cat("Player 1 laid down: \n")
+print(laid.down.cards)
+
