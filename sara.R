@@ -93,10 +93,12 @@ if (discard.stock <= .5) {
 
 #check for duplicates (mark 3s and sets getting close to 3)
 #using face.names from above to keep track of the counts
-p1.faces = first.player$faces
-face.counts = rep(0,13)
+total.threes = 0
+p1.faces = first.player$faces #vector of all the face values in p1's hand (ie. king, ace, ace, one, etc.)
+face.counts = rep(0,13) #vector that has count of each face value in a player's hand (index 1 = king, index 13 = ace)
 set.of.three = c()
 set.of.two = c()
+# loop through p1's faces vector and count how many faces in the hand
 for (i in 1:length(p1.faces)) {
   for (j in 1:length(p1.faces)) {
     if (face.names[i] == p1.faces[j]) {
@@ -106,18 +108,20 @@ for (i in 1:length(p1.faces)) {
 }
 for (k in 1:length(face.counts)) {
   if (face.counts[k] == 2) {
-    set.of.two = append(set.of.two,face.names[k])
+    set.of.two = append(set.of.two,face.names[k]) # vector of sets of 2 (close to a 3)
   }
   if (face.counts[k] >= 3) {
-    set.of.three = append(set.of.three,face.names[k])
+    set.of.three = append(set.of.three,face.names[k]) # vector of face vals that occur 3+ times
   } 
 }
 
 laid.down.cards = data.frame()
 for (i in 1:length(set.of.three)) {
-  dups = set.of.three[i]
-  laid.down.cards = filter(first.player, faces %in% dups)
+  dups = set.of.three[i] 
+  laid.down.cards = filter(first.player, faces %in% dups) # print full card names in p1's hand that were marked as a 3
 }
 cat("Player 1 laid down: \n")
 print(laid.down.cards)
+total.threes = total.threes + length(set.of.three)
+
 
