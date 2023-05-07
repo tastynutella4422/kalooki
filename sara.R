@@ -3,6 +3,8 @@ library(dplyr)
 
 ## 2 Decks of Cards (2-3 person game)
 
+laid.down.cards = data.frame()
+
 suit.names = c('spades', 'clubs', 'hearts', 'diamonds')
 suits = unlist(map(suit.names, rep, 26))
 
@@ -63,6 +65,16 @@ setup = function(n, deck) {
   return(list(v1=p1.hand, v2=p2.hand, v3=top.discard.card, v4=stock.pile))
 }
 
+#determine which card in hand is of highest value (to be used when discarding during each player's turn)
+highest.val.card = function(hand) {
+  face.vals <- c("two" = 2, "three" = 3, "four" = 4, "five" = 5, "six" = 6, "seven" = 7,
+                   "eight" = 8, "nine" = 9, "ten" = 10, "jack" = 11, "queen" = 12, "king" = 13)
+  hand$value = face.vals[hand$faces]
+  hand$value[hand$faces == "ace" & (hand$suits == "hearts" | hand$suits == "diamonds")] = 1
+  hand$value[hand$faces == "ace" & (hand$suits == "spades" | hand$suits == "clubs")] = 15
+  return(hand[which.max(hand$value), ])
+}
+
 
 #Round 1: Three 3s
 
@@ -115,13 +127,28 @@ for (k in 1:length(face.counts)) {
   } 
 }
 
-laid.down.cards = data.frame()
-for (i in 1:length(set.of.three)) {
-  dups = set.of.three[i] 
-  laid.down.cards = filter(first.player, faces %in% dups) # print full card names in p1's hand that were marked as a 3
+if (length(set.of.three > 0)) { #check to see if any cards can be laid down
+  for (i in 1:length(set.of.three)) {
+    dups = set.of.three[i] 
+    laid.down.cards = filter(first.player, faces %in% dups) # print full card names in p1's hand that were marked as a 3
+  }
+  cat("Player 1 laid down: \n")
+  print(laid.down.cards)
+  total.threes = total.threes + length(set.of.three)
+  remaining.hand = anti_join(first.player,laid.down.cards, by="order")
+} else {
+  remaining.hand = first.player
 }
-cat("Player 1 laid down: \n")
-print(laid.down.cards)
-total.threes = total.threes + length(set.of.three)
 
+#convert set.of.two to dataframe so that it can be removed from consideration when discarding cards
+for (i in 1:length(set.of.two)) {
+  partial = set.of.two[i]
+  partial.sets = filter(remaining.hand, faces %in% partial)
+}
+
+#from the remaining hand, discard the highest value card (elias's function)
+to.discard = anti_join(remaining.hand,partial.sets, by="order")
+player.discard = highest.val.card(to.discard)
+end.of.turn.hand = anti_join(first.player,player.discard, by="order")
+top.discard = player.discard #reassign top of the discard pile
 
