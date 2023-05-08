@@ -23,6 +23,13 @@ order = c(105:108)
 total.jokers = data.frame(faces,suits,order)
 deck = rbind(deck,total.jokers)
 
+face.vals <- c("two" = 2, "three" = 3, "four" = 4, "five" = 5, "six" = 6, "seven" = 7,
+               "eight" = 8, "nine" = 9, "ten" = 10, "jack" = 11, "queen" = 12, "king" = 13, "joker" = 50)
+deck$value = face.vals[deck$faces]
+deck$value[deck$faces == "ace" & (deck$suits == "hearts" | deck$suits == "diamonds")] = 1
+deck$value[deck$faces == "ace" & (deck$suits == "spades" | deck$suits == "clubs")] = 15
+
+
 #Deal Function (num cards dealt as parameter)
 deal = function(n, deck) {
   #Create empty data frames for player1 and player2
@@ -68,11 +75,6 @@ setup = function(n, deck) {
 
 #function to determine which card in hand is of highest value (to be used when discarding during each player's turn)
 highest.val.card = function(hand) {
-  face.vals <- c("two" = 2, "three" = 3, "four" = 4, "five" = 5, "six" = 6, "seven" = 7,
-                   "eight" = 8, "nine" = 9, "ten" = 10, "jack" = 11, "queen" = 12, "king" = 13)
-  hand$value = face.vals[hand$faces]
-  hand$value[hand$faces == "ace" & (hand$suits == "hearts" | hand$suits == "diamonds")] = 1
-  hand$value[hand$faces == "ace" & (hand$suits == "spades" | hand$suits == "clubs")] = 15
   return(hand[which.max(hand$value), ])
 }
 
@@ -107,24 +109,17 @@ discard.or.stock = function(player) {
 
 #function that checks for 3s and partial 3s, lays down any 3s, and chooses card to discard (excluding sets of 2 since they have higher chance of becoming a 3)
 three.threes.gameplay = function(player,total.threes,total.laid.down.cards) {
-  player.faces = player$faces #vector of all the face values in player's hand (ie. king, ace, ace, one, etc.)
-  face.counts = rep(0,length(player.faces)) #vector that has count of each face value in a player's hand (index 1 = king, index 13 = ace)
   set.of.three = c()
   set.of.two = c()
-  # loop through player's faces vector and count how many faces in the hand
-  for (i in 1:length(player.faces)) {
-    for (j in 1:length(player.faces)) {
-      if (face.names[i] == player.faces[j]) {
-        face.counts[i] = face.counts[i] + 1
-      }
+  faces.freq = table(player$faces) #make a table for how many times each face value occurs in the player's hand
+  for (k in 1:length(faces.freq)) {
+    if (faces.freq[k] == 2) {
+      face.name = names(faces.freq[k])
+      set.of.two = append(set.of.two,face.name) # vector of sets of 2 (close to a 3)
     }
-  }
-  for (k in 1:length(face.counts)) {
-    if (face.counts[k] == 2) {
-      set.of.two = append(set.of.two,face.names[k]) # vector of sets of 2 (close to a 3)
-    }
-    if (face.counts[k] >= 3) {
-      set.of.three = append(set.of.three,face.names[k]) # vector of face vals that occur 3+ times
+    if (faces.freq[k] >= 3) {
+      face.name = names(faces.freq[k])
+      set.of.three = append(set.of.three,face.name) # vector of face vals that occur 3+ times
     } 
   }
   
@@ -151,9 +146,9 @@ three.threes.gameplay = function(player,total.threes,total.laid.down.cards) {
   #from the remaining hand, discard the highest value card (elias's function)
   to.discard = anti_join(remaining.hand,partial.sets, by="order")
   player.discard = highest.val.card(to.discard)
-  end.of.turn.hand = anti_join(player,player.discard, by="order")
+  end.of.turn.hand = anti_join(remaining.hand,player.discard, by="order")
   top.discard = player.discard #reassign top of the discard pile
- 
+  
   return(list(v1=end.of.turn.hand, v2=total.threes, v3=top.discard, v4=total.laid.down.cards)) 
 }
 
@@ -170,19 +165,35 @@ top.discard = init.cards$v3
 stock.pile = init.cards$v4
 
 players = player.order(p1.hand,p2.hand)
-first.player = players$v1
-second.player = players$v2
+p1.hand = players$v1
+p2.hand = players$v2
 
-picked.up.card = discard.or.stock(first.player)
-first.player = picked.up.card$v1
-top.discard = picked.up.card$v2
-stock.pile = picked.up.card$v3
+while ((p1.total.threes < 3) | (p2.total.threes < 3)) {
+  picked.up.card = discard.or.stock(p1.hand)
+  p1.hand = picked.up.card$v1
+  top.discard = picked.up.card$v2
+  stock.pile = picked.up.card$v3
+  
+  p1.gameplay = three.threes.gameplay(p1.hand,p1.total.threes,total.laid.down.cards)
+  p1.hand = p1.gameplay$v1
+  p1.total.threes = p1.gameplay$v2
+  top.discard = p1.gameplay$v3
+  total.laid.down.cards = p1.gameplay$v4
+  
+  picked.up.card = discard.or.stock(p2.hand)
+  p2.hand = picked.up.card$v1
+  top.discard = picked.up.card$v2
+  stock.pile = picked.up.card$v3
+  
+  p2.gameplay = three.threes.gameplay(p2.hand,p2.total.threes,total.laid.down.cards)
+  p2.hand = p2.gameplay$v1
+  p2.total.threes = p2.gameplay$v2
+  top.discard = p2.gameplay$v3
+  total.laid.down.cards = p2.gameplay$v4
+}
 
-p1.gameplay = three.threes.gameplay(p1.hand,p1.total.threes, total.laid.down.cards)
-p1.hand = p1.gameplay$v1
-p1.total.threes = p1.gameplay$v2
-top.discard = p1.gameplay$v3
-total.laid.down.cards = p1.gameplay$v4
+print("done")
+
 
 
 
