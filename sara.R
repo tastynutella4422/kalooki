@@ -108,7 +108,7 @@ discard.or.stock = function(player) {
 }
 
 #function that checks for 3s and partial 3s, lays down any 3s, and chooses card to discard (excluding sets of 2 since they have higher chance of becoming a 3)
-three.threes.gameplay = function(player,total.threes,total.laid.down.cards) {
+three.threes.gameplay = function(player,total.threes,total.laid.down.cards, tack.on) {
   set.of.three = c()
   set.of.two = c()
   won = F
@@ -144,6 +144,27 @@ three.threes.gameplay = function(player,total.threes,total.laid.down.cards) {
     return(list(v1=data.frame(), v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won))
   }
   
+  #Step to tack on once player has laid down 3 sets of 3
+  if (tack.on == T) {
+    cur.faces = remaining.hand$faces
+    n = length(cur.faces)
+    for (i in 1:n) {
+      tack.on = data.frame()
+      to.check = cur.faces[i]
+      if (to.check %in% total.laid.down.cards$faces) { #check to see if any of the faces in the player's current hand matches the faces that have already been laid down
+        tack.on = filter(remaining.hand, faces %in% to.check) #extract the full card from player's hand that has that face value
+        total.laid.down.cards = rbind(total.laid.down.cards, tack.on) #add card to total laid down cards (tacking on)
+        remaining.hand = anti_join(remaining.hand, tack.on, by="order") #remove that card from player's hand
+      }
+    }
+    if (length(remaining.hand$order)== 0) {
+      won = T
+      print("Player has won")
+      return(list(v1=data.frame(), v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won))
+    }
+  }
+
+  
   
   #convert set.of.two to dataframe so that it can be removed from consideration when discarding cards
   for (i in 1:length(set.of.two)) {
@@ -161,91 +182,9 @@ three.threes.gameplay = function(player,total.threes,total.laid.down.cards) {
     won = T
     print("Player has won")
   }
-  
-  
   return(list(v1=end.of.turn.hand, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won)) 
 }
 
-
-three.threes.with.tackon.gameplay = function(player,total.threes,total.laid.down.cards) {
-  set.of.three = c()
-  set.of.two = c()
-  won = F
-  faces.freq = table(player$faces) #make a table for how many times each face value occurs in the player's hand
-  for (k in 1:length(faces.freq)) {
-    if (faces.freq[k] >= 3) {
-      face.name = names(faces.freq[k])
-      set.of.three = append(set.of.three,face.name) # vector of face vals that occur 3+ times
-    } 
-  }
-  
-  if (length(set.of.three > 0)) { #check to see if any cards can be laid down
-    for (i in 1:length(set.of.three)) {
-      dups = set.of.three[i] 
-      laid.down.cards = filter(player, faces %in% dups) # print full card names in p1's hand that were marked as a 3
-      total.laid.down.cards = rbind(total.laid.down.cards,laid.down.cards)
-    }
-    cat("Player laid down: \n")
-    print(laid.down.cards)
-    total.threes = total.threes + length(set.of.three)
-    remaining.hand = anti_join(player,laid.down.cards, by="order")
-  } else {
-    remaining.hand = player
-  }
-  
-  if (length(remaining.hand$order)== 0) {
-    won = T
-    print("Player has won")
-    return(list(v1=data.frame(), v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won))
-  }
-  #EXTRA STEP: tacking on
-  cur.faces = remaining.hand$faces
-  n = length(cur.faces)
-  for (i in 1:n) {
-    tack.on = data.frame()
-    to.check = cur.faces[i]
-    if (to.check %in% total.laid.down.cards$faces) { #check to see if any of the faces in the player's current hand matches the faces that have already been laid down
-      tack.on = filter(remaining.hand, faces %in% to.check) #extract the full card from player's hand that has that face value
-      total.laid.down.cards = rbind(total.laid.down.cards, tack.on) #add card to total laid down cards (tacking on)
-      remaining.hand = anti_join(remaining.hand, tack.on, by="order") #remove that card from player's hand
-    }
-  }
-  if (length(remaining.hand$order)== 0) {
-    won = T
-    print("Player has won")
-    return(list(v1=data.frame(), v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won))
-  }
-  
-  
-  
-  #convert set.of.two to dataframe so that it can be removed from consideration when discarding cards
-  faces.freq = table(remaining.hand$faces) #make a table for how many times each face value occurs in the player's hand
-  for (k in 1:length(faces.freq)) {
-    if (faces.freq[k] == 2) {
-      face.name = names(faces.freq[k])
-      set.of.two = append(set.of.two,face.name) # vector of sets of 2 (close to a 3)
-    }
-  }
-  for (i in 1:length(set.of.two)) {
-    partial = set.of.two[i]
-    partial.sets = filter(remaining.hand, faces %in% partial)
-  }
-  
-  #from the remaining hand, discard the highest value card (elias's function)
-  to.discard = anti_join(remaining.hand,partial.sets, by="order")
-  player.discard = highest.val.card(to.discard)
-  end.of.turn.hand = anti_join(remaining.hand,player.discard, by="order")
-  top.discard = player.discard #reassign top of the discard pile
-  
-  if (length(remaining.hand$order)== 0) {
-    won = T
-    print("Player has won")
-    return(list(v1=data.frame(), v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won))
-  
-  } else {
-    return(list(v1=end.of.turn.hand, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won))
-  }
-}
 
 #Round 1: Three 3s
 
@@ -271,14 +210,14 @@ while (won == F) {
   stock.pile = picked.up.card$v3
   
   if (p1.total.threes >= 3) {
-    p1.gameplay = three.threes.with.tackon.gameplay(p1.hand,p1.total.threes,total.laid.down.cards)
+    p1.gameplay = three.threes.gameplay(p1.hand,p1.total.threes,total.laid.down.cards,T)
     p1.hand = p1.gameplay$v1
     p1.total.threes = p1.gameplay$v2
     top.discard = p1.gameplay$v3
     total.laid.down.cards = p1.gameplay$v4 
     won = p1.gameplay$v5
   } else {
-    p1.gameplay = three.threes.gameplay(p1.hand,p1.total.threes,total.laid.down.cards)
+    p1.gameplay = three.threes.gameplay(p1.hand,p1.total.threes,total.laid.down.cards,F)
     p1.hand = p1.gameplay$v1
     p1.total.threes = p1.gameplay$v2
     top.discard = p1.gameplay$v3
@@ -292,7 +231,7 @@ while (won == F) {
   stock.pile = picked.up.card$v3
   
   if (p2.total.threes >= 3) {
-    p2.gameplay = three.threes.with.tackon.gameplay(p2.hand,p2.total.threes,total.laid.down.cards)
+    p2.gameplay = three.threes.gameplay(p2.hand,p2.total.threes,total.laid.down.cards,T)
     p2.hand = p2.gameplay$v1
     p2.total.threes = p2.gameplay$v2
     top.discard = p2.gameplay$v3
@@ -300,7 +239,7 @@ while (won == F) {
     won = p2.gameplay$v5
 
   } else {
-    p2.gameplay = three.threes.gameplay(p2.hand,p2.total.threes,total.laid.down.cards)
+    p2.gameplay = three.threes.gameplay(p2.hand,p2.total.threes,total.laid.down.cards,F)
     p2.hand = p2.gameplay$v1
     p2.total.threes = p2.gameplay$v2
     top.discard = p2.gameplay$v3
