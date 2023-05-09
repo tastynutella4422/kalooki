@@ -63,7 +63,7 @@ deal = function(n, deck) {
   }
   
   # Remove the dealt cards from the original deck
-  remaining.cards= deck[-(1:(2 * num_cards)), ]
+  remaining.cards= deck[-(1:(4 * num_cards)), ]
   
   return(list(v1=player1_cards, v2=player2_cards, v3=player3_cards, v4=player4_cards, v5=remaining.cards))
 }
@@ -152,12 +152,11 @@ finding.threes = function(player,total.threes,total.laid.down.cards, tack.on) {
     won = T
     return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won))
   }
-  faces.freq = table(player$faces) #make a table for how many times each face value occurs in the player's hand
+  
+  joker.cards = filter(player, faces %in% "joker")
+  find.sets = anti_join(player,joker.cards,by="order")
+  faces.freq = table(find.sets$faces) #make a table for how many times each face value occurs in the player's hand
   for (k in 1:length(faces.freq)) {
-    joker.count = 0
-    if (names(faces.freq[k]) == "joker") {
-      joker.count = joker.count + 1
-    }
     if (faces.freq[k] == 2) {
       face.name = names(faces.freq[k])
       set.of.two = append(set.of.two,face.name) # vector of sets of 2 (close to a 3)
@@ -168,33 +167,36 @@ finding.threes = function(player,total.threes,total.laid.down.cards, tack.on) {
     } 
   }
   
-  jokers.added = 0
-  if (joker.count > 0) {
-    for (j in 1:length(set.of.two)) {
-      while (joker.count > 0) {
-        set.of.three = append(set.of.three,set.of.two[j])
-        jokers.added = jokers.added + 1
-        joker.count = joker.count - 1
-      }
+  if ((length(set.of.two) > 0) & (length(joker.cards$order) > 0)) {
+    lengths = c(length(set.of.two), length(joker.cards$order))
+    min.val = min(lengths)
+    for (y in 1:min.val) {
+      double.to.triple = set.of.two[y]
+      jokers.to.add = joker.cards %>% slice(y)
+      to.add = filter(player, faces %in% double.to.triple)
+      doubles.added = rbind(jokers.to.add, to.add)
+      total.laid.down.cards = rbind(total.laid.down.cards,doubles.added)
+      cat("Player laid down: \n")
+      print(doubles.added)
     }
+    total.threes = total.threes + min.val
+    player = anti_join(player,doubles.added, by="order")
   }
+ 
+  if (length(player$order)== 0) {
+    won = T
+    return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won))
+  }
+  
   
   if (length(set.of.three > 0)) { #check to see if any cards can be laid down
     for (i in 1:length(set.of.three)) {
       dups = set.of.three[i]
-      if (dups != "joker") {
-        laid.down.cards = filter(player, faces %in% dups) # print full card names in p1's hand that were marked as a 3
-        total.laid.down.cards = rbind(total.laid.down.cards,laid.down.cards)
-      }
+      laid.down.cards = filter(player, faces %in% dups) # print full card names in p1's hand that were marked as a 3
+      cat("Player laid down: \n")
+      print(laid.down.cards)
+      total.laid.down.cards = rbind(total.laid.down.cards,laid.down.cards)
     }
-    if (jokers.added > 0) {
-      for (i in 1:jokers.added) {
-        laid.down.cards = filter(player, faces %in% "joker")
-        total.laid.down.cards = rbind(total.laid.down.cards,laid.down.cards)
-      }
-    }
-    cat("Player laid down: \n")
-    print(laid.down.cards)
     total.threes = total.threes + length(set.of.three)
     player = anti_join(player,laid.down.cards, by="order")
   }
