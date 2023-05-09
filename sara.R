@@ -109,7 +109,7 @@ discard.or.stock = function(player) {
 }
 
 #function that checks for 3s and partial 3s, lays down any 3s, and chooses card to discard (excluding sets of 2 since they have higher chance of becoming a 3)
-three.threes.gameplay = function(player,total.threes,total.laid.down.cards, tack.on) {
+two.threes.gameplay = function(player,total.threes,total.laid.down.cards, tack.on) {
   set.of.three = c()
   set.of.two = c()
   won = F
@@ -189,7 +189,7 @@ tally.score = function(p1.hand,p1.score,p2.hand,p2.score) {
   if ((length(p1.hand$order)) == 0) {
     p2.score = p2.score + (sum(p2.hand$value))
   } else {
-    p1.score = p1.score + (sum(p2.hand$value))
+    p1.score = p1.score + (sum(p1.hand$value))
   }
   return(list(v1=p1.score,v2=p2.score))
 }
@@ -218,23 +218,17 @@ while (won == F) {
   top.discard = picked.up.card$v2
   stock.pile = picked.up.card$v3
   
-  if (p1.total.threes >= 3) {
+  if (p1.total.threes >= 2) {
     tack.on = T
-    p1.gameplay = three.threes.gameplay(p1.hand,p1.total.threes,total.laid.down.cards,tack.on)
-    p1.hand = p1.gameplay$v1
-    p1.total.threes = p1.gameplay$v2
-    top.discard = p1.gameplay$v3
-    total.laid.down.cards = p1.gameplay$v4 
-    won = p1.gameplay$v5
   } else {
     tack.on = F
-    p1.gameplay = three.threes.gameplay(p1.hand,p1.total.threes,total.laid.down.cards,tack.on)
-    p1.hand = p1.gameplay$v1
-    p1.total.threes = p1.gameplay$v2
-    top.discard = p1.gameplay$v3
-    total.laid.down.cards = p1.gameplay$v4
-    won = p1.gameplay$v5
   }
+  p1.gameplay = two.threes.gameplay(p1.hand,p1.total.threes,total.laid.down.cards,tack.on)
+  p1.hand = p1.gameplay$v1
+  p1.total.threes = p1.gameplay$v2
+  top.discard = p1.gameplay$v3
+  total.laid.down.cards = p1.gameplay$v4 
+  won = p1.gameplay$v5
   
   if (length(p1.hand) == 0) {
     print("Player 1 wins")
@@ -248,22 +242,15 @@ while (won == F) {
   
   if (p2.total.threes >= 3) {
     tack.on = T
-    p2.gameplay = three.threes.gameplay(p2.hand,p2.total.threes,total.laid.down.cards,tack.on)
-    p2.hand = p2.gameplay$v1
-    p2.total.threes = p2.gameplay$v2
-    top.discard = p2.gameplay$v3
-    total.laid.down.cards = p2.gameplay$v4
-    won = p2.gameplay$v5
-
   } else {
     tack.on = F
-    p2.gameplay = three.threes.gameplay(p2.hand,p2.total.threes,total.laid.down.cards,tack.on)
-    p2.hand = p2.gameplay$v1
-    p2.total.threes = p2.gameplay$v2
-    top.discard = p2.gameplay$v3
-    total.laid.down.cards = p2.gameplay$v4
-    won = p2.gameplay$v5
   }
+  p2.gameplay = two.threes.gameplay(p2.hand,p2.total.threes,total.laid.down.cards,tack.on)
+  p2.hand = p2.gameplay$v1
+  p2.total.threes = p2.gameplay$v2
+  top.discard = p2.gameplay$v3
+  total.laid.down.cards = p2.gameplay$v4
+  won = p2.gameplay$v5
   
   if (length(p2.hand) == 0) {
     print("Player 2 wins")
