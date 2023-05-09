@@ -155,6 +155,8 @@ finding.threes = function(player,total.threes,total.laid.down.cards, tack.on) {
       to.check = cur.faces[i]
       if (to.check %in% total.laid.down.cards$faces) { #check to see if any of the faces in the player's current hand matches the faces that have already been laid down
         tack.on = filter(player, faces %in% to.check) #extract the full card from player's hand that has that face value
+        cat("Player tacked on: \n")
+        print(tack.on)
         total.laid.down.cards = rbind(total.laid.down.cards, tack.on) #add card to total laid down cards (tacking on)
         player = anti_join(player, tack.on, by="order") #remove that card from player's hand
       }
