@@ -119,6 +119,10 @@ finding.threes = function(player,total.threes,total.laid.down.cards, tack.on) {
   }
   faces.freq = table(player$faces) #make a table for how many times each face value occurs in the player's hand
   for (k in 1:length(faces.freq)) {
+    total.jokers = 0
+    if (names(faces.freq[k]) == "joker") {
+      total.jokers = total.jokers + 1
+    }
     if (faces.freq[k] == 2) {
       face.name = names(faces.freq[k])
       set.of.two = append(set.of.two,face.name) # vector of sets of 2 (close to a 3)
@@ -128,6 +132,14 @@ finding.threes = function(player,total.threes,total.laid.down.cards, tack.on) {
       set.of.three = append(set.of.three,face.name) # vector of face vals that occur 3+ times
     } 
   }
+  if (total.jokers > 0) {
+    for (j in 1:length(set.of.two)) {
+      while (total.jokers > 0) {
+        set.of.three = append(set.of.three,set.of.two[j])
+      }
+    }
+  }
+
   
   if (length(set.of.three > 0)) { #check to see if any cards can be laid down
     for (i in 1:length(set.of.three)) {
