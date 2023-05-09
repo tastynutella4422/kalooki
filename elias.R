@@ -29,7 +29,7 @@ face.vals <- c("two" = 2, "three" = 3, "four" = 4, "five" = 5, "six" = 6, "seven
 deck$value = face.vals[deck$faces]
 deck$value[deck$faces == "ace" & (deck$suits == "hearts" | deck$suits == "diamonds")] = 1
 deck$value[deck$faces == "ace" & (deck$suits == "spades" | deck$suits == "clubs")] = 15
-
+deck$name = "NA"
 
 #Deal Function (num cards dealt as parameter)
 deal = function(n, deck) {

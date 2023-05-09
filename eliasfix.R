@@ -31,7 +31,7 @@ face.vals <- c("two" = 2, "three" = 3, "four" = 4, "five" = 5, "six" = 6, "seven
 deck$value = face.vals[deck$faces]
 deck$value[deck$faces == "ace" & (deck$suits == "hearts" | deck$suits == "diamonds")] = 1
 deck$value[deck$faces == "ace" & (deck$suits == "spades" | deck$suits == "clubs")] = 15
-
+deck$name = "NA"
 
 #Deal Function (num cards dealt as parameter)
 deal = function(n, deck) {
@@ -117,6 +117,10 @@ player.order = function(p1.hand,p2.hand, p3.hand, p4.hand) {
     third.player = p2.hand
     fourth.player = p1.hand 
   }
+  first.player$name = "Player 1"
+  second.player$name = "Player 2"
+  third.player$name = "Player 3"
+  fourth.player$name = "Player 4"
   return(list(v1=first.player, v2=second.player, v3 = third.player, v4 = fourth.player))
 }
 
@@ -135,7 +139,7 @@ discard.or.stock = function(player) {
 }
 
 #function that checks for 3s and partial 3s, lays down any 3s, and chooses card to discard (excluding sets of 2 since they have higher chance of becoming a 3)
-three.threes.gameplay = function(player,total.threes,total.laid.down.cards, tack.on) {
+finding.threes = function(player,total.threes,total.laid.down.cards, tack.on) {
   set.of.three = c()
   set.of.two = c()
   won = F
