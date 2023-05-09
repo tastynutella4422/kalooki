@@ -276,3 +276,6 @@ p1.score = all.scores$v1
 p2.score = all.scores$v2
 
 
+#maybe we should make finding a 3 a function so that we can implement in the different rounds
+#potentially need function if stock pile runs out - would then need to have actually kept track of discard pile rather than only storing the top card
+#metrics to track across rounds
