@@ -109,7 +109,7 @@ discard.or.stock = function(player) {
 }
 
 #function that checks for 3s and partial 3s, lays down any 3s, and chooses card to discard (excluding sets of 2 since they have higher chance of becoming a 3)
-two.threes.gameplay = function(player,total.threes,total.laid.down.cards, tack.on) {
+finding.threes = function(player,total.threes,total.laid.down.cards, tack.on) {
   set.of.three = c()
   set.of.two = c()
   won = F
@@ -195,7 +195,7 @@ tally.score = function(p1.hand,p1.score,p2.hand,p2.score) {
 }
 
 
-#Round 1: Three 3s
+#Round 1: Two 3s
 
 p1.total.threes = 0
 p2.total.threes = 0
@@ -223,7 +223,7 @@ while (won == F) {
   } else {
     tack.on = F
   }
-  p1.gameplay = two.threes.gameplay(p1.hand,p1.total.threes,total.laid.down.cards,tack.on)
+  p1.gameplay = finding.threes(p1.hand,p1.total.threes,total.laid.down.cards,tack.on)
   p1.hand = p1.gameplay$v1
   p1.total.threes = p1.gameplay$v2
   top.discard = p1.gameplay$v3
@@ -245,7 +245,7 @@ while (won == F) {
   } else {
     tack.on = F
   }
-  p2.gameplay = two.threes.gameplay(p2.hand,p2.total.threes,total.laid.down.cards,tack.on)
+  p2.gameplay = finding.threes(p2.hand,p2.total.threes,total.laid.down.cards,tack.on)
   p2.hand = p2.gameplay$v1
   p2.total.threes = p2.gameplay$v2
   top.discard = p2.gameplay$v3
