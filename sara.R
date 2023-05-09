@@ -38,6 +38,8 @@ deck$value[deck$faces == "ace" & (deck$suits == "hearts" | deck$suits == "diamon
 deck$value[deck$faces == "ace" & (deck$suits == "spades" | deck$suits == "clubs")] = 15
 deck$name = "NA"
 
+discard.pile = data.frame()
+
 #Deal Function (num cards dealt as parameter)
 deal = function(n, deck) {
   #Create empty data frames for player1 and player2
@@ -148,10 +150,6 @@ finding.threes = function(player,total.threes,total.laid.down.cards, tack.on) {
   set.of.three = c()
   set.of.two = c()
   won = F
-  if (length(player$order)== 0) {
-    won = T
-    return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won))
-  }
   
   joker.cards = filter(player, faces %in% "joker")
   find.sets = anti_join(player,joker.cards,by="order")
@@ -185,7 +183,7 @@ finding.threes = function(player,total.threes,total.laid.down.cards, tack.on) {
  
   if (length(player$order)== 0) {
     won = T
-    return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won))
+    return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=discard.pile))
   }
   
   
@@ -203,7 +201,7 @@ finding.threes = function(player,total.threes,total.laid.down.cards, tack.on) {
   
   if (length(player$order)== 0) {
     won = T
-    return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won))
+    return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=discard.pile))
   }
   
   #Step to tack on once player has laid down 3 sets of 3
@@ -223,7 +221,7 @@ finding.threes = function(player,total.threes,total.laid.down.cards, tack.on) {
     }
     if (length(player$order)== 0) {
       won = T
-      return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won))
+      return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=discard.pile))
     }
   }
   
@@ -241,12 +239,12 @@ finding.threes = function(player,total.threes,total.laid.down.cards, tack.on) {
   player.discard = highest.val.card(to.discard)
   player = anti_join(player,player.discard, by="order")
   top.discard = player.discard #reassign top of the discard pile
+  discard.pile = rbind(discard.pile,player.discard)
   
-  if (length(player$order)== 0) {
-    won = T
-    return(list(v1=data.frame(), v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won))
-  }
-  return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won)) 
+  player = anti_join(player,total.laid.down.cards,by="order")
+  
+  
+  return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=discard.pile)) 
 }
 
 #function to keep track of the score after each round
@@ -298,9 +296,9 @@ p4.hand = players$v4
 while (won == F) {
   picked.up.card = discard.or.stock(p1.hand)
   p1.hand = picked.up.card$v1
+  p1.hand$name = p1.hand$name[1]
   top.discard = picked.up.card$v2
   stock.pile = picked.up.card$v3
-  
   if (p1.total.threes >= 2) {
     tack.on = T
   } else {
@@ -312,14 +310,15 @@ while (won == F) {
   top.discard = p1.gameplay$v3
   total.laid.down.cards = p1.gameplay$v4 
   won = p1.gameplay$v5
-  
-  if (length(p1.hand$order) == 0) {
+  discard.pile = p1.gameplay$v6
+  if (length(p1.hand$faces) == 0) {
     print("Player 1 wins")
     break
   }
   
   picked.up.card = discard.or.stock(p2.hand)
   p2.hand = picked.up.card$v1
+  p2.hand$name = p2.hand$name[1]
   top.discard = picked.up.card$v2
   stock.pile = picked.up.card$v3
   
@@ -334,14 +333,16 @@ while (won == F) {
   top.discard = p2.gameplay$v3
   total.laid.down.cards = p2.gameplay$v4
   won = p2.gameplay$v5
+  discard.pile = p2.gameplay$v6
   
-  if (length(p2.hand$order) == 0) {
+  if (length(p2.hand$faces) == 0) {
     print("Player 2 wins")
     break
   }
   
   picked.up.card = discard.or.stock(p3.hand)
   p3.hand = picked.up.card$v1
+  p3.hand$name = p3.hand$name[1]
   top.discard = picked.up.card$v2
   stock.pile = picked.up.card$v3
   
@@ -356,14 +357,16 @@ while (won == F) {
   top.discard = p3.gameplay$v3
   total.laid.down.cards = p3.gameplay$v4
   won = p3.gameplay$v5
+  discard.pile = p3.gameplay$v6
   
-  if (length(p3.hand$order) == 0) {
+  if (length(p3.hand$faces) == 0) {
     print("Player 3 wins")
     break
   }
   
   picked.up.card = discard.or.stock(p4.hand)
   p4.hand = picked.up.card$v1
+  p4.hand$name = p4.hand$name[1]
   top.discard = picked.up.card$v2
   stock.pile = picked.up.card$v3
   
@@ -378,12 +381,12 @@ while (won == F) {
   top.discard = p4.gameplay$v3
   total.laid.down.cards = p4.gameplay$v4
   won = p4.gameplay$v5
+  discard.pile = p4.gameplay$v6
   
-  if (length(p4.hand$order) == 0) {
+  if (length(p4.hand$faces) == 0) {
     print("Player 4 wins")
     break
   }
-  
 }
 
 all.scores = tally.score(p1.hand,p1.score,p2.hand,p2.score,p3.hand,p3.score,p4.hand,p4.score)
@@ -391,3 +394,8 @@ p1.score = all.scores$v1
 p2.score = all.scores$v2
 p3.score = all.scores$v3
 p4.score = all.scores$v4
+
+tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
+tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
+tot1 + tot2
+
