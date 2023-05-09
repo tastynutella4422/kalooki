@@ -217,6 +217,8 @@ finding.threes = function(player,total.threes,total.laid.down.cards, tack.on) {
         tack.on = filter(player, faces %in% to.check) #extract the full card from player's hand that has that face value
         total.laid.down.cards = rbind(total.laid.down.cards, tack.on) #add card to total laid down cards (tacking on)
         player = anti_join(player, tack.on, by="order") #remove that card from player's hand
+        print("Player tacked on: \n")
+        print(tack.on)
       }
     }
     if (length(player$order)== 0) {
@@ -311,7 +313,7 @@ while (won == F) {
   total.laid.down.cards = p1.gameplay$v4 
   won = p1.gameplay$v5
   
-  if (length(p1.hand) == 0) {
+  if (length(p1.hand$order) == 0) {
     print("Player 1 wins")
     break
   }
@@ -333,7 +335,7 @@ while (won == F) {
   total.laid.down.cards = p2.gameplay$v4
   won = p2.gameplay$v5
   
-  if (length(p2.hand) == 0) {
+  if (length(p2.hand$order) == 0) {
     print("Player 2 wins")
     break
   }
@@ -355,7 +357,7 @@ while (won == F) {
   total.laid.down.cards = p3.gameplay$v4
   won = p3.gameplay$v5
   
-  if (length(p3.hand) == 0) {
+  if (length(p3.hand$order) == 0) {
     print("Player 3 wins")
     break
   }
@@ -377,7 +379,7 @@ while (won == F) {
   total.laid.down.cards = p4.gameplay$v4
   won = p4.gameplay$v5
   
-  if (length(p4.hand) == 0) {
+  if (length(p4.hand$order) == 0) {
     print("Player 4 wins")
     break
   }
