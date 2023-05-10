@@ -147,12 +147,18 @@ discard.or.stock = function(player) {
   return(list(v1=player, v2=top.discard, v3=stock.pile, v4=discard.pile))
 }
 
-#function that checks for 3s and partial 3s, lays down any 3s, and chooses card to discard (excluding sets of 2 since they have higher chance of becoming a 3)
-finding.threes = function(player,total.threes,total.laid.down.cards, tack.on) {
+#function that checks if a player has won (no cards left in hand)
+check.if.won = function(player) {
+  if (length(player$order)== 0) {
+    won = T
+  }
+  return(won)
+}
+
+#function that finds sets of 2 and 3 in a player's hand
+finding.sets = function(player) {
   set.of.three = c()
   set.of.two = c()
-  won = F
-  
   joker.cards = filter(player, faces %in% "joker")
   find.sets = anti_join(player,joker.cards,by="order")
   faces.freq = table(find.sets$faces) #make a table for how many times each face value occurs in the player's hand
@@ -166,7 +172,11 @@ finding.threes = function(player,total.threes,total.laid.down.cards, tack.on) {
       set.of.three = append(set.of.three,face.name) # vector of face vals that occur 3+ times
     } 
   }
-  
+  return(list(v1=set.of.two, v2=set.of.three, v3=joker.cards))
+}
+
+finding.joker.sets = function(player,set.of.two,joker.cards,total.threes) {
+  doubles.added = data.frame()
   if ((length(set.of.two) > 0) & (length(joker.cards$order) > 0)) {
     lengths = c(length(set.of.two), length(joker.cards$order))
     min.val = min(lengths)
@@ -179,54 +189,98 @@ finding.threes = function(player,total.threes,total.laid.down.cards, tack.on) {
         player = anti_join(player,doubles.added, by="order")
       }
       total.laid.down.cards = rbind(total.laid.down.cards,doubles.added)
-      cat("Player laid down: \n")
-      print(doubles.added)
     }
     total.threes = total.threes + min.val
   }
- 
-  if (length(player$order)== 0) {
-    won = T
-    return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=discard.pile))
+  return(list(v1=total.laid.down.cards, v2=doubles.added, v3=player, v4=total.threes))
+}
+
+lay.down.cards = function(set.or.run) {
+  if (length(set.or.run$order) > 0) {
+    print("Player laid down: ")
+    print(set.or.run)
   }
-  
-  
+}
+
+finding.full.sets = function(player,set.of.three,total.threes) {
+  laid.down.cards = data.frame()
   if (length(set.of.three > 0)) { #check to see if any cards can be laid down
     for (i in 1:length(set.of.three)) {
       dups = set.of.three[i]
       laid.down.cards = filter(player, faces %in% dups) # print full card names in p1's hand that were marked as a 3
-      cat("Player laid down: \n")
-      print(laid.down.cards)
       player = anti_join(player,laid.down.cards, by="order")
       total.laid.down.cards = rbind(total.laid.down.cards,laid.down.cards)
     }
     total.threes = total.threes + length(set.of.three)
   }
-  
-  if (length(player$order)== 0) {
-    won = T
-    return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=discard.pile))
-  }
-  
-  #Step to tack on once player has laid down 3 sets of 3
+  return(list(v1=player,v2=total.laid.down.cards,v3=laid.down.cards,v4=total.threes))
+}
+
+tacking.on = function(player,tack.on) {
+  to.tack = data.frame()
   if (tack.on == T) {
     cur.faces = player$faces
     n = length(cur.faces)
     for (i in 1:n) {
-      tack.on = data.frame()
+      to.tack = data.frame()
       to.check = cur.faces[i]
       if (to.check %in% total.laid.down.cards$faces) { #check to see if any of the faces in the player's current hand matches the faces that have already been laid down
-        tack.on = filter(player, faces %in% to.check) #extract the full card from player's hand that has that face value
-        total.laid.down.cards = rbind(total.laid.down.cards, tack.on) #add card to total laid down cards (tacking on)
-        player = anti_join(player, tack.on, by="order") #remove that card from player's hand
-        print("Player tacked on: \n")
-        print(tack.on)
+        to.tack = filter(player, faces %in% to.check) #extract the full card from player's hand that has that face value
+        total.laid.down.cards = rbind(total.laid.down.cards, to.tack) #add card to total laid down cards (tacking on)
+        player = anti_join(player, to.tack, by="order") #remove that card from player's hand
       }
     }
-    if (length(player$order)== 0) {
-      won = T
-      return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=discard.pile))
-    }
+  }
+  return(list(v1=player,v2=to.tack,v3=total.laid.down.cards))
+}
+
+
+#function that checks for 3s and partial 3s, lays down any 3s, and chooses card to discard (excluding sets of 2 since they have higher chance of becoming a 3)
+finding.threes = function(player,total.threes,total.laid.down.cards, tack.on) {
+  won = F
+  
+  total.sets = finding.sets(player)
+  set.of.two = total.sets$v1
+  set.of.three = total.sets$v2
+  joker.cards = total.sets$v3
+  
+  joker.sets = finding.joker.sets(player,set.of.two,joker.cards,total.threes)
+  total.laid.down.cards = joker.sets$v1
+  sets.added = joker.sets$v2
+  player = joker.sets$v3
+  total.threes = joker.sets$v4
+  
+  lay.down.cards(sets.added)
+ 
+  won = check.if.won(player)
+  if (won == T) {
+    return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=discard.pile)) 
+  }
+  
+  full.sets = finding.full.sets(player,set.of.three,total.threes)
+  player = full.sets$v1
+  total.laid.down.cards = full.sets$v2
+  sets.added = full.sets$v3
+  total.threes = full.sets$v4
+  
+  lay.down.cards(sets.added)
+  
+  check.if.won(player)
+  if (won == T) {
+    return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=discard.pile)) 
+  }
+   
+  #Step to tack on once player has laid down 3 sets of 3
+
+  cards.tacked = tacking.on(player,tack.on)
+  player = cards.tacked$v1
+  tacked.cards = cards.tacked$v2
+  total.laid.down.cards = cards.tacked$v3
+  lay.down.cards(tacked.cards)
+  
+  won = check.if.won(player)
+  if (won == T) {
+    return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=discard.pile)) 
   }
   
   #convert set.of.two to dataframe so that it can be removed from consideration when discarding cards
