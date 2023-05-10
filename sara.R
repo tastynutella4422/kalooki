@@ -6,6 +6,7 @@
 library(purrr)
 library(dplyr)
 
+set.seed(5)
 
 ## 2 Decks of Cards (2-3 person game)
 

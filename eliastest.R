@@ -6,7 +6,7 @@
 library(purrr)
 library(dplyr)
 
-
+set.seed(1)
 ## 2 Decks of Cards (2-3 person game)
 
 total.laid.down.cards = data.frame()
@@ -176,7 +176,7 @@ finding.threes = function(player, total.threes, total.laid.down.cards, tack_on) 
         player = anti_join(player,doubles.added, by="order")
       }
       total.laid.down.cards = rbind(total.laid.down.cards,doubles.added)
-      cat("Player laid down: \n")
+      cat(player$name[1],"laid down: \n")
       print(doubles.added)
     }
     total.threes = total.threes + min.val
