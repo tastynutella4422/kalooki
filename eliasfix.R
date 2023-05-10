@@ -1,9 +1,13 @@
+
+#maybe we should make finding a 3 a function so that we can implement in the different rounds
+#potentially need function if stock pile runs out - would then need to have actually kept track of discard pile rather than only storing the top card
+#metrics to track across rounds
+
 library(purrr)
 library(dplyr)
 
-## 2 Decks of Cards (2-3 person game)
 
-set.seed(3)
+## 2 Decks of Cards (2-3 person game)
 
 total.laid.down.cards = data.frame()
 p1.score = 0
@@ -82,10 +86,11 @@ setup = function(n, deck) {
   remaining = resulting.hands$v5
   
   top.discard.card = remaining[1,] #assigns the top value of the remaining cards
+  discard.pile = rbind(discard.pile, top.discard.card)
   
   stock.pile = remaining[-1, ]
   print(top.discard.card)
-  return(list(v1=p1.hand, v2=p2.hand, v3=p3.hand, v4 = p4.hand, v5=top.discard.card, v6=stock.pile))
+  return(list(v1=p1.hand, v2=p2.hand, v3=p3.hand, v4 = p4.hand, v5=top.discard.card, v6=stock.pile, v7=discard.pile))
 }
 
 #function to determine which card in hand is of highest value (to be used when discarding during each player's turn)
@@ -133,15 +138,13 @@ discard.or.stock = function(player) {
   discard.stock = runif(1)
   if (discard.stock <= .5) {
     player = rbind(player,top.discard)
-    top.discard = NULL
-    cat(player$name[1],"picks up from the discard pile \n")
+    discard.pile = anti_join(discard.pile,top.discard,by="order")
   } else {
     top.stock = stock.pile[1, ]
     player = rbind(player,top.stock)
-    stock.pile = stock.pile[-1,]
-    cat(player$name[1],"picks up from the stock pile \n")
+    stock.pile = anti_join(stock.pile, top.stock, by="order")
   }
-  return(list(v1=player, v2=top.discard, v3=stock.pile))
+  return(list(v1=player, v2=top.discard, v3=stock.pile, v4=discard.pile))
 }
 
 #function that checks for 3s and partial 3s, lays down any 3s, and chooses card to discard (excluding sets of 2 since they have higher chance of becoming a 3)
@@ -149,8 +152,10 @@ finding.threes = function(player,total.threes,total.laid.down.cards, tack.on) {
   set.of.three = c()
   set.of.two = c()
   won = F
-
-  faces.freq = table(player$faces) #make a table for how many times each face value occurs in the player's hand
+  
+  joker.cards = filter(player, faces %in% "joker")
+  find.sets = anti_join(player,joker.cards,by="order")
+  faces.freq = table(find.sets$faces) #make a table for how many times each face value occurs in the player's hand
   for (k in 1:length(faces.freq)) {
     if (faces.freq[k] == 2) {
       face.name = names(faces.freq[k])
@@ -162,21 +167,45 @@ finding.threes = function(player,total.threes,total.laid.down.cards, tack.on) {
     } 
   }
   
-  if (length(set.of.three > 0)) { #check to see if any cards can be laid down
-    for (i in 1:length(set.of.three)) {
-      dups = set.of.three[i] 
-      laid.down.cards = filter(player, faces %in% dups) # print full card names in p1's hand that were marked as a 3
-      total.laid.down.cards = rbind(total.laid.down.cards,laid.down.cards)
+  if ((length(set.of.two) > 0) & (length(joker.cards$order) > 0)) {
+    lengths = c(length(set.of.two), length(joker.cards$order))
+    min.val = min(lengths)
+    for (y in 1:min.val) {
+      double.to.triple = set.of.two[y]
+      jokers.to.add = joker.cards %>% slice(y)
+      to.add = filter(player, faces %in% double.to.triple)
+      doubles.added = rbind(jokers.to.add, to.add)
+      if (length(doubles.added$order) > 0) {
+        player = anti_join(player,doubles.added, by="order")
+      }
+      total.laid.down.cards = rbind(total.laid.down.cards,doubles.added)
+      cat("Player laid down: \n")
+      print(doubles.added)
     }
-    cat("Player laid down: \n")
-    print(laid.down.cards)
-    total.threes = total.threes + length(set.of.three)
-    player = anti_join(player,laid.down.cards, by="order")
+    total.threes = total.threes + min.val
   }
   
   if (length(player$order)== 0) {
     won = T
-    return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6 = discard.pile))
+    return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=discard.pile))
+  }
+  
+  
+  if (length(set.of.three > 0)) { #check to see if any cards can be laid down
+    for (i in 1:length(set.of.three)) {
+      dups = set.of.three[i]
+      laid.down.cards = filter(player, faces %in% dups) # print full card names in p1's hand that were marked as a 3
+      cat("Player laid down: \n")
+      print(laid.down.cards)
+      player = anti_join(player,laid.down.cards, by="order")
+      total.laid.down.cards = rbind(total.laid.down.cards,laid.down.cards)
+    }
+    total.threes = total.threes + length(set.of.three)
+  }
+  
+  if (length(player$order)== 0) {
+    won = T
+    return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=discard.pile))
   }
   
   #Step to tack on once player has laid down 3 sets of 3
@@ -190,11 +219,13 @@ finding.threes = function(player,total.threes,total.laid.down.cards, tack.on) {
         tack.on = filter(player, faces %in% to.check) #extract the full card from player's hand that has that face value
         total.laid.down.cards = rbind(total.laid.down.cards, tack.on) #add card to total laid down cards (tacking on)
         player = anti_join(player, tack.on, by="order") #remove that card from player's hand
+        print("Player tacked on: \n")
+        print(tack.on)
       }
     }
     if (length(player$order)== 0) {
       won = T
-      return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6 = discard.pile))
+      return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=discard.pile))
     }
   }
   
@@ -204,14 +235,22 @@ finding.threes = function(player,total.threes,total.laid.down.cards, tack.on) {
     partial.sets = filter(player, faces %in% partial)
   }
   
+  #remove jokers from consideration when discarding a card
+  jokers = filter(player, faces %in% "joker")
   #from the remaining hand, discard the highest value card (elias's function)
-  to.discard = anti_join(player,partial.sets, by="order")
+  no.discard = rbind(partial.sets,jokers)
+  to.discard = anti_join(player,no.discard, by="order")
   player.discard = highest.val.card(to.discard)
   player = anti_join(player,player.discard, by="order")
   top.discard = player.discard #reassign top of the discard pile
   discard.pile = rbind(discard.pile,player.discard)
   
-  return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6 = discard.pile)) 
+  if (length(total.laid.down.cards$order) > 0) {
+    player = anti_join(player,total.laid.down.cards,by="order")
+  }
+  
+  
+  return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=discard.pile)) 
 }
 
 #function to keep track of the score after each round
@@ -228,7 +267,7 @@ tally.score = function(p1.hand,p1.score,p2.hand,p2.score,p3.hand,p3.score,p4.han
     p1.score = p1.score + (sum(p1.hand$value))
     p2.score = p2.score + (sum(p2.hand$value))
     p4.score = p4.score + (sum(p4.hand$value))
-  }else {
+  } else {
     p1.score = p1.score + (sum(p1.hand$value))
     p2.score = p2.score + (sum(p2.hand$value))
     p3.score = p3.score + (sum(p3.hand$value))
@@ -236,6 +275,56 @@ tally.score = function(p1.hand,p1.score,p2.hand,p2.score,p3.hand,p3.score,p4.han
   return(list(v1=p1.score,v2=p2.score,v3=p3.score,v4=p4.score ))
 }
 
+find.runs = function(player) {
+  # Initialize an empty list to store the found runs
+  total.runs = data.frame()
+  
+  # Sort the player's hand by suit and face value
+  sorted.hand = player[order(player$suits,player$faces), ]
+  hand.suits = sorted.hand$suits
+  
+  # Loop through each unique suit in the sorted hand
+  for (i in 1:length(hand.suits)) {
+    # Get all cards with the current suit
+    cards.of.suit = filter(sorted.hand, suits %in% hand.suits[i])
+    
+    # Initialize variables to keep track of consecutive cards and the current run
+    consecutive.cards = 1
+    first.card = cards.of.suit %>% slice(1)
+    run = rbind(run,first.card)
+    
+    # Loop through the remaining cards in the suit_cards dataframe
+    num.cards = length(cards.of.suit$order)
+    for (j in 2:num.cards) {
+      # If the current card's face value is 1 more than the previous card's face value,
+      # increment the consecutive_cards counter and add the current card to the run
+      if ((cards.of.suit$faces[j]) == ((cards.of.suit$faces[j - 1]) + 1)) {
+        consecutive.cards = consecutive.cards + 1
+        to.add = cards.of.suit %>% slice(j)
+        run = rbind(run,to.add)
+      } else {
+        # If not, reset the consecutive_cards counter and start a new run with the current card
+        consecutive.cards = 1
+        new.beginning = cards.of.suit %>% slice(j)
+        run = rbind(run,new.beginning)
+      }
+      
+      # If there are at least 4 consecutive cards, add the run to the list of runs
+      if (consecutive.cards >= 4) {
+        print("Player laid down: \n")
+        print(run)
+        total.runs = rbind(total.runs,run)
+      }
+    }
+  }
+  player = anti_join(player,total.runs,by="order")
+  
+  # Return the list of runs found in the player's hand
+  return(runs)
+}
+
+
+#------------------------------------------------------------------------------#
 
 #Round 1: Three 3s
 
@@ -253,6 +342,7 @@ p3.hand = init.cards$v3
 p4.hand = init.cards$v4
 top.discard = init.cards$v5
 stock.pile = init.cards$v6
+discard.pile = init.cards$v7
 
 players = player.order(p1.hand,p2.hand,p3.hand,p4.hand)
 p1.hand = players$v1
@@ -266,6 +356,7 @@ while (won == F) {
   p1.hand$name = p1.hand$name[1]
   top.discard = picked.up.card$v2
   stock.pile = picked.up.card$v3
+  discard.pile = picked.up.card$v4
   if (p1.total.threes >= 2) {
     tack.on = T
   } else {
@@ -282,12 +373,17 @@ while (won == F) {
     print("Player 1 wins")
     break
   }
+  tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
+  tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
+  print(tot1 + tot2)
+  
   
   picked.up.card = discard.or.stock(p2.hand)
   p2.hand = picked.up.card$v1
   p2.hand$name = p2.hand$name[1]
   top.discard = picked.up.card$v2
   stock.pile = picked.up.card$v3
+  discard.pile = picked.up.card$v4
   
   if (p2.total.threes >= 2) {
     tack.on = T
@@ -306,12 +402,17 @@ while (won == F) {
     print("Player 2 wins")
     break
   }
+  tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
+  tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
+  print(tot1 + tot2)
+  
   
   picked.up.card = discard.or.stock(p3.hand)
   p3.hand = picked.up.card$v1
   p3.hand$name = p3.hand$name[1]
   top.discard = picked.up.card$v2
   stock.pile = picked.up.card$v3
+  discard.pile = picked.up.card$v4
   
   if (p3.total.threes >= 2) {
     tack.on = T
@@ -330,12 +431,17 @@ while (won == F) {
     print("Player 3 wins")
     break
   }
+  tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
+  tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
+  print(tot1 + tot2)
+  
   
   picked.up.card = discard.or.stock(p4.hand)
   p4.hand = picked.up.card$v1
   p4.hand$name = p4.hand$name[1]
   top.discard = picked.up.card$v2
   stock.pile = picked.up.card$v3
+  discard.pile = picked.up.card$v4
   
   if (p4.total.threes >= 2) {
     tack.on = T
@@ -349,11 +455,15 @@ while (won == F) {
   total.laid.down.cards = p4.gameplay$v4
   won = p4.gameplay$v5
   discard.pile = p4.gameplay$v6
-
+  
   if (length(p4.hand$faces) == 0) {
     print("Player 4 wins")
     break
   }
+  tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
+  tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
+  print(tot1 + tot2)
+  
 }
 
 all.scores = tally.score(p1.hand,p1.score,p2.hand,p2.score,p3.hand,p3.score,p4.hand,p4.score)
@@ -362,8 +472,9 @@ p2.score = all.scores$v2
 p3.score = all.scores$v3
 p4.score = all.scores$v4
 
-
 tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
 tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
 tot1 + tot2
+
+
 
