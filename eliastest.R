@@ -6,7 +6,8 @@
 library(purrr)
 library(dplyr)
 
-set.seed(1)
+set.seed(5)
+
 ## 2 Decks of Cards (2-3 person game)
 
 total.laid.down.cards = data.frame()
@@ -176,8 +177,10 @@ finding.threes = function(player, total.threes, total.laid.down.cards, tack_on) 
         player = anti_join(player,doubles.added, by="order")
       }
       total.laid.down.cards = rbind(total.laid.down.cards,doubles.added)
-      cat(player$name[1],"laid down: \n")
-      print(doubles.added)
+      if (length(doubles.added$order) > 0) {
+        cat("Player laid down: \n")
+        print(doubles.added)
+      }
     }
     total.threes = total.threes + min.val
   }
@@ -211,7 +214,7 @@ finding.threes = function(player, total.threes, total.laid.down.cards, tack_on) 
   player = discard_result$v1
   top.discard = discard_result$v2
   discard.pile = discard_result$v3
-
+  
   return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=discard.pile))
 }
 
@@ -242,13 +245,15 @@ find_sets = function(player) {
 }
 
 lay_down_threes = function(player, set.of.three, total.laid.down.cards) {
-  for (i in 1:length(set.of.three)) {
-    face_value = set.of.three[i]
-    laid_down_cards = filter(player, faces %in% face_value)
-    cat(player$name[1],"laid down: \n")
-    print(laid_down_cards)
-    player = anti_join(player, laid_down_cards, by="order")
-    total.laid.down.cards = rbind(total.laid.down.cards, laid_down_cards)
+  if (length(set.of.three) > 0) {
+    for (i in 1:length(set.of.three)) {
+      face_value = set.of.three[i]
+      laid_down_cards = filter(player, faces %in% face_value)
+      cat(player$name[1],"laid down: \n")
+      print(laid_down_cards)
+      player = anti_join(player, laid_down_cards, by="order")
+      total.laid.down.cards = rbind(total.laid.down.cards, laid_down_cards)
+    }
   }
   return(list(v1 = player, v2 = total.laid.down.cards))
 }
@@ -261,10 +266,12 @@ tack_on_cards = function(player, total.laid.down.cards) {
     to_check = cur_faces[i]
     if (to_check %in% total.laid.down.cards$faces) {
       tack_on = filter(player, faces %in% to_check)
-      total.laid.down.cards = rbind(total.laid.down.cards, tack_on)
-      player = anti_join(player, tack_on, by="order")
-      cat("Player tacked on: \n")
-      print(tack_on)
+      if (length(tack_on$order) > 0) {
+        total.laid.down.cards = rbind(total.laid.down.cards, tack_on)
+        player = anti_join(player, tack_on, by="order")
+        cat("Player tacked on: \n")
+        print(tack_on)
+      }
     }
   }
   
@@ -319,6 +326,56 @@ tally.score = function(p1.hand,p1.score,p2.hand,p2.score,p3.hand,p3.score,p4.han
   return(list(v1=p1.score,v2=p2.score,v3=p3.score,v4=p4.score ))
 }
 
+find.runs = function(player) {
+  # Initialize an empty list to store the found runs
+  total.runs = data.frame()
+  
+  # Sort the player's hand by suit and face value
+  sorted.hand = player[order(player$suits,player$faces), ]
+  hand.suits = sorted.hand$suits
+  
+  # Loop through each unique suit in the sorted hand
+  for (i in 1:length(hand.suits)) {
+    # Get all cards with the current suit
+    cards.of.suit = filter(sorted.hand, suits %in% hand.suits[i])
+    
+    # Initialize variables to keep track of consecutive cards and the current run
+    consecutive.cards = 1
+    first.card = cards.of.suit %>% slice(1)
+    run = rbind(run,first.card)
+    
+    # Loop through the remaining cards in the suit_cards dataframe
+    num.cards = length(cards.of.suit$order)
+    for (j in 2:num.cards) {
+      # If the current card's face value is 1 more than the previous card's face value,
+      # increment the consecutive_cards counter and add the current card to the run
+      if ((cards.of.suit$faces[j]) == ((cards.of.suit$faces[j - 1]) + 1)) {
+        consecutive.cards = consecutive.cards + 1
+        to.add = cards.of.suit %>% slice(j)
+        run = rbind(run,to.add)
+      } else {
+        # If not, reset the consecutive_cards counter and start a new run with the current card
+        consecutive.cards = 1
+        new.beginning = cards.of.suit %>% slice(j)
+        run = rbind(run,new.beginning)
+      }
+      
+      # If there are at least 4 consecutive cards, add the run to the list of runs
+      if (consecutive.cards >= 4) {
+        print("Player laid down: \n")
+        print(run)
+        total.runs = rbind(total.runs,run)
+      }
+    }
+  }
+  player = anti_join(player,total.runs,by="order")
+  
+  # Return the list of runs found in the player's hand
+  return(runs)
+}
+
+
+#------------------------------------------------------------------------------#
 
 #Round 1: Three 3s
 
