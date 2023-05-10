@@ -164,7 +164,6 @@ finding.threes = function(player, total.threes, total.laid.down.cards, tack_on) 
   set_of_three = sets$v1
   total.threes = total.threes + length(sets$v1)
   joker.cards = filter(player, faces %in% "joker")
-  
   if ((length(set_of_two) > 0) & (length(joker.cards$order) > 0)) {
     lengths = c(length(set_of_two), length(joker.cards$order))
     min.val = min(lengths)
@@ -178,7 +177,7 @@ finding.threes = function(player, total.threes, total.laid.down.cards, tack_on) 
       }
       total.laid.down.cards = rbind(total.laid.down.cards,doubles.added)
       if (length(doubles.added$order) > 0) {
-        cat("Player laid down: \n")
+        cat(player$name[1],"laid down a joker in combination with two cards: \n")
         print(doubles.added)
       }
     }
@@ -226,7 +225,7 @@ find_sets = function(player) {
   joker.cards = filter(player, faces %in% "joker")
   find.sets = anti_join(player, joker.cards, by="order")
   faces.freq = table(find.sets$faces)
-  print(player$name[1])
+  #print(player$name[1])
   faces.freq
   for (k in 1:length(faces.freq)) {
     if (faces.freq[k] == 2) {
@@ -249,7 +248,7 @@ lay_down_threes = function(player, set.of.three, total.laid.down.cards) {
     for (i in 1:length(set.of.three)) {
       face_value = set.of.three[i]
       laid_down_cards = filter(player, faces %in% face_value)
-      cat(player$name[1],"laid down: \n")
+      cat(player$name[1],"laid down a set: \n")
       print(laid_down_cards)
       player = anti_join(player, laid_down_cards, by="order")
       total.laid.down.cards = rbind(total.laid.down.cards, laid_down_cards)
@@ -401,7 +400,11 @@ p2.hand = players$v2
 p3.hand = players$v3
 p4.hand = players$v4
 
+subround = 0 
+
 while (won == F) {
+  subround = subround + 1
+  cat("------------it is player's 1 turn--------", "\n")
   picked.up.card = discard.or.stock(p1.hand)
   p1.hand = picked.up.card$v1
   p1.hand$name = p1.hand$name[1]
@@ -420,14 +423,18 @@ while (won == F) {
   total.laid.down.cards = p1.gameplay$v4 
   won = p1.gameplay$v5
   discard.pile = p1.gameplay$v6
+  
+  
+  
   if (length(p1.hand$faces) == 0) {
     print("Player 1 wins")
     break
   }
-  tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
-  tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
-  print(tot1 + tot2)
+  # tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
+  # tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
+  # print(tot1 + tot2)
   
+  cat("------------it is player's 2 turn--------", "\n")
   
   picked.up.card = discard.or.stock(p2.hand)
   p2.hand = picked.up.card$v1
@@ -449,14 +456,16 @@ while (won == F) {
   won = p2.gameplay$v5
   discard.pile = p2.gameplay$v6
   
+  
   if (length(p2.hand$faces) == 0) {
     print("Player 2 wins")
     break
   }
-  tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
-  tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
-  print(tot1 + tot2)
+  # tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
+  # tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
+  # print(tot1 + tot2)
   
+  cat("------------it is player's 3 turn--------", "\n")
   
   picked.up.card = discard.or.stock(p3.hand)
   p3.hand = picked.up.card$v1
@@ -482,10 +491,11 @@ while (won == F) {
     print("Player 3 wins")
     break
   }
-  tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
-  tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
-  print(tot1 + tot2)
+  # tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
+  # tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
+  # print(tot1 + tot2)
   
+  cat("------------it is player's 4 turn--------", "\n")
   
   picked.up.card = discard.or.stock(p4.hand)
   p4.hand = picked.up.card$v1
@@ -511,11 +521,11 @@ while (won == F) {
     print("Player 4 wins")
     break
   }
-  tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
-  tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
-  print(tot1 + tot2)
-  
+  # tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
+  # tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
+  # print(tot1 + tot2)
 }
+cat("this game ended in the",subround,"th round \n")
 
 all.scores = tally.score(p1.hand,p1.score,p2.hand,p2.score,p3.hand,p3.score,p4.hand,p4.score)
 p1.score = all.scores$v1
