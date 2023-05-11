@@ -209,7 +209,7 @@ finding.threes = function(player, total.threes, total.laid.down.cards, tack_on) 
   }
   
   # Discard a card
-  discard_result = discard_card(player, set_of_two)
+  discard_result = discard_card_sets(player, set_of_two)
   player = discard_result$v1
   top.discard = discard_result$v2
   discard.pile = discard_result$v3
@@ -277,7 +277,7 @@ tack_on_cards = function(player, total.laid.down.cards) {
   return(list(v1 = player, v2 = total.laid.down.cards))
 }
 
-discard_card = function(player, set_of_two) {
+discard_card_sets = function(player, set_of_two) {
   # Convert set_of_two to dataframe so that it can be removed from consideration when discarding cards
   partial_sets = data.frame()
   for (i in 1:length(set_of_two)) {
@@ -326,6 +326,7 @@ tally.score = function(p1.hand,p1.score,p2.hand,p2.score,p3.hand,p3.score,p4.han
 }
 
 find.runs = function(player) {
+  num.runs = 0
   player.runs = data.frame()
   partial.runs = data.frame()
   run = data.frame()
@@ -353,7 +354,7 @@ find.runs = function(player) {
     for (j in 2:num.cards) {
       # If the current card's face value is 1 more than the previous card's face value,
       # increment the consecutive_cards counter and add the current card to the run
-      if ((cards.of.suit$faces[j]) == ((cards.of.suit$faces[j - 1]) + 1)) {
+      if ((cards.of.suit$value[j]) == ((cards.of.suit$value[j - 1]) + 1)) {
         consecutive.cards = consecutive.cards + 1
         to.add = cards.of.suit %>% slice(j)
         run = rbind(run,to.add)
@@ -370,19 +371,42 @@ find.runs = function(player) {
       num.runs = num.runs + 1
     }
     if (consecutive.cards == 3) {
-      partial.runs = rbind(partial.runs,run)
+      if (length(aces$order) > 0) {
+        first = run %>% slice(1)
+        last = run %>% slice(3)
+        if (first$faces == "two") {
+          add.ace = aces %>% slice(1)
+          new.four = rbind(add.ace,run)
+          aces = anti_join(add.ace,aces,by="order")
+          player.runs = rbind(player.runs,new.four)
+          num.runs = num.runs + 1
+        } else if (last$faces == "king") {
+          add.ace = aces %>% slice(1)
+          new.four = rbind(run,add.ace)
+          aces = anti_join(add.ace,aces,by="order")
+          player.runs = rbind(player.runs,new.four)
+          num.runs = num.runs + 1
+        } else {
+          partial.runs = rbind(partial.runs,run)
+        }
+      } else {
+        partial.runs = rbind(partial.runs,run)
+      }
     }
   }
   
+
   # Return the list of runs found in the player's hand
-  return(player,player.runs,partial.runs,num.runs)
+  return(list(v1=player,v2=player.runs,v3=partial.runs,v4=num.runs))
 }
 
 lay_down_fours = function(player, player.runs, total.runs) {
-  cat("Player laid down: \n")
-  print(player.runs)
-  player = anti_join(player, player.runs, by="order")
-  total.runs = rbind(total.runs, player.runs)
+  if (length(player.runs$order) > 0) {
+    cat("Player laid down: \n")
+    print(player.runs)
+    player = anti_join(player, player.runs, by="order")
+    total.runs = rbind(total.runs, player.runs)
+  }
   return(list(v1 = player, v2 = total.runs))
 }
 
@@ -428,7 +452,7 @@ finding.fours = function(player, total.fours, num.fours, tack_on) {
   #IMPLEMENT TACK-ON and check if won afterwards
   
   #Discard a card
-  discard_result = discard_card(player, partial.runs)
+  discard_result = discard_card_runs(player, partial.runs)
   player = discard_result$v1
   top.discard = discard_result$v2
   discard.pile = discard_result$v3
@@ -437,6 +461,20 @@ finding.fours = function(player, total.fours, num.fours, tack_on) {
 
 }
 
+discard_card_runs = function(player, partial.runs) {
+  # Remove jokers from consideration when discarding a card
+  jokers = filter(player, faces %in% "joker")
+  
+  # From the remaining hand, discard the highest value card
+  no_discard = rbind(partial.runs, jokers)
+  to_discard = anti_join(player, no_discard, by="order")
+  player_discard = highest.val.card(to_discard)
+  player = anti_join(player, player_discard, by="order")
+  top_discard = player_discard # Reassign top of the discard pile
+  discard.pile = rbind(discard.pile, player_discard)
+  
+  return(list(v1=player, v2=top_discard, v3=discard.pile))
+}
 
 
 
@@ -603,6 +641,7 @@ tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) 
 tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
 tot1 + tot2
 
+#--------------------------------------------------------------------------------------------#
 
 #Round 2: One three, One four (34)
 
