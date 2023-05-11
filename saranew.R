@@ -332,6 +332,7 @@ find.runs = function(player) {
   run = data.frame()
   joker.cards = filter(player, faces %in% "joker")
   aces = filter(player, faces %in% "ace")
+  aces.suits = aces$suits
   to.ignore = rbind(joker.cards,aces)
   to.find = anti_join(player, to.ignore, by="order")
   
@@ -370,32 +371,28 @@ find.runs = function(player) {
       player.runs = rbind(player.runs,run)
       num.runs = num.runs + 1
     }
-    if (consecutive.cards == 3) {
-      if (length(aces$order) > 0) {
+    if ((consecutive.cards == 3) & (length(aces$order) > 0)) {
         first = run %>% slice(1)
         last = run %>% slice(3)
-        if (first$faces == "two") {
-          add.ace = aces %>% slice(1)
-          new.four = rbind(add.ace,run)
-          aces = anti_join(add.ace,aces,by="order")
-          player.runs = rbind(player.runs,new.four)
-          num.runs = num.runs + 1
-        } else if (last$faces == "king") {
-          add.ace = aces %>% slice(1)
-          new.four = rbind(run,add.ace)
-          aces = anti_join(add.ace,aces,by="order")
-          player.runs = rbind(player.runs,new.four)
-          num.runs = num.runs + 1
-        } else {
-          partial.runs = rbind(partial.runs,run)
+        for (k in 1:length(aces.suits)) {
+          if ((aces.suits[k] == first$suits) & (first$faces == "two")) {
+            add.ace = aces %>% slice(k)
+            new.four = rbind(add.ace,run)
+            aces = anti_join(add.ace,aces,by="order")
+            player.runs = rbind(player.runs,new.four)
+            num.runs = num.runs + 1
+          } else if ((aces.suits[k] == last$suits) & (last$faces == "king")) {
+            add.ace = aces %>% slice(k)
+            new.four = rbind(run,add.ace)
+            aces = anti_join(add.ace,aces,by="order")
+            player.runs = rbind(player.runs,new.four)
+            num.runs = num.runs + 1
+          } else {
+            partial.runs = rbind(partial.runs,run)
+          }
         }
-      } else {
-        partial.runs = rbind(partial.runs,run)
       }
     }
-  }
-  
-
   # Return the list of runs found in the player's hand
   return(list(v1=player,v2=player.runs,v3=partial.runs,v4=num.runs))
 }
@@ -457,7 +454,7 @@ finding.fours = function(player, total.fours, num.fours, tack_on) {
   top.discard = discard_result$v2
   discard.pile = discard_result$v3
   
-  return(list(v1=player,v2=num.fours,v3=top.disard,v4=total.fours,v5=won,v6=discard.pile))
+  return(list(v1=player,v2=num.fours,v3=top.discard,v4=total.fours,v5=won,v6=discard.pile))
 
 }
 
@@ -470,10 +467,10 @@ discard_card_runs = function(player, partial.runs) {
   to_discard = anti_join(player, no_discard, by="order")
   player_discard = highest.val.card(to_discard)
   player = anti_join(player, player_discard, by="order")
-  top_discard = player_discard # Reassign top of the discard pile
+  top.discard = player_discard # Reassign top of the discard pile
   discard.pile = rbind(discard.pile, player_discard)
   
-  return(list(v1=player, v2=top_discard, v3=discard.pile))
+  return(list(v1=player, v2=top.discard, v3=discard.pile))
 }
 
 
