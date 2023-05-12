@@ -155,7 +155,7 @@ discard.or.stock = function(player) {
 }
 
 #function that checks for 3s and partial 3s, lays down any 3s, and chooses card to discard (excluding sets of 2 since they have higher chance of becoming a 3)
-finding.threes = function(player, total.threes, total.laid.down.cards, tack_on) {
+finding.threes = function(player, total.threes, total.laid.down.cards, tack_on, all=T) {
   won = F
   
   # Find sets in the player's hand
@@ -164,12 +164,13 @@ finding.threes = function(player, total.threes, total.laid.down.cards, tack_on) 
   set_of_three = sets$v1
   total.threes = total.threes + length(sets$v1)
   joker.cards = filter(player, faces %in% "joker")
-  if ((length(set_of_two) > 0) & (length(joker.cards$order) > 0)) {
-    lengths = c(length(set_of_two), length(joker.cards$order))
-    min.val = min(lengths)
-    for (y in 1:min.val) {
-      double.to.triple = set_of_two[y]
-      jokers.to.add = joker.cards %>% slice(y)
+  
+  joker.set = F
+  
+  if(all == F) {
+    if ((length(set_of_two) > 0) & (length(joker.cards$order) > 0)) {
+      double.to.triple = set_of_two[1]
+      jokers.to.add = joker.cards %>% slice(1)
       to.add = filter(player, faces %in% double.to.triple)
       doubles.added = rbind(jokers.to.add, to.add)
       if (length(doubles.added$order) > 0) {
@@ -180,14 +181,40 @@ finding.threes = function(player, total.threes, total.laid.down.cards, tack_on) 
         cat(player$name[1],"laid down a joker in combination with two cards: \n")
         print(doubles.added)
       }
+      total.threes = total.threes + 1
+      joker.set = T
     }
-    total.threes = total.threes + min.val
+    if(joker.set == F){
+      lay_down_result = lay_down_threes(player, set_of_three, total.laid.down.cards, all)
+      player = lay_down_result$v1
+      total.laid.down.cards = lay_down_result$v2
+    }
   }
-  
-  # Lay down threes
-  lay_down_result = lay_down_threes(player, set_of_three, total.laid.down.cards)
-  player = lay_down_result$v1
-  total.laid.down.cards = lay_down_result$v2
+  else {
+    if ((length(set_of_two) > 0) & (length(joker.cards$order) > 0)) {
+      lengths = c(length(set_of_two), length(joker.cards$order))
+      min.val = min(lengths)
+      for (y in 1:min.val) {
+        double.to.triple = set_of_two[y]
+        jokers.to.add = joker.cards %>% slice(y)
+        to.add = filter(player, faces %in% double.to.triple)
+        doubles.added = rbind(jokers.to.add, to.add)
+        if (length(doubles.added$order) > 0) {
+          player = anti_join(player,doubles.added, by="order")
+        }
+        total.laid.down.cards = rbind(total.laid.down.cards,doubles.added)
+        if (length(doubles.added$order) > 0) {
+          cat(player$name[1],"laid down a joker in combination with two cards: \n")
+          print(doubles.added)
+        }
+      }
+      total.threes = total.threes + min.val
+    }
+    # Lay down threes
+    lay_down_result = lay_down_threes(player, set_of_three, total.laid.down.cards, all)
+    player = lay_down_result$v1
+    total.laid.down.cards = lay_down_result$v2
+  }
   
   # Check if the player has won
   if (length(player$order) == 0) {
@@ -243,17 +270,29 @@ find_sets = function(player) {
   return(list(v1 = set.of.three, v2 = set.of.two, v3 = remaining_hand))
 }
 
-lay_down_threes = function(player, set.of.three, total.laid.down.cards) {
-  if (length(set.of.three) > 0) {
-    for (i in 1:length(set.of.three)) {
-      face_value = set.of.three[i]
+lay_down_threes = function(player, set.of.three, total.laid.down.cards, all= T) {
+  if(all == TRUE) {
+    if (length(set.of.three) > 0) {
+      for (i in 1:length(set.of.three)) {
+        face_value = set.of.three[i]
+        laid_down_cards = filter(player, faces %in% face_value)
+        cat(player$name[1],"laid down a set: \n")
+        print(laid_down_cards)
+        player = anti_join(player, laid_down_cards, by="order")
+        total.laid.down.cards = rbind(total.laid.down.cards, laid_down_cards)
+      }
+    }
+  }
+  else {
+    if (length(set.of.three) > 0) {
+      face_value = set.of.three[1]
       laid_down_cards = filter(player, faces %in% face_value)
       cat(player$name[1],"laid down a set: \n")
       print(laid_down_cards)
       player = anti_join(player, laid_down_cards, by="order")
       total.laid.down.cards = rbind(total.laid.down.cards, laid_down_cards)
+      }
     }
-  }
   return(list(v1 = player, v2 = total.laid.down.cards))
 }
 
@@ -299,9 +338,6 @@ discard_card_sets = function(player, set_of_two) {
   
   return(list(v1=player, v2=top_discard, v3=discard.pile))
 }
-
-
-
 
 #function to keep track of the score after each round
 tally.score = function(p1.hand,p1.score,p2.hand,p2.score,p3.hand,p3.score,p4.hand,p4.score) {
@@ -352,21 +388,24 @@ find.runs = function(player) {
     
     # Loop through the remaining cards in the suit_cards dataframe
     num.cards = length(cards.of.suit$order)
-    for (j in 2:num.cards) {
-      # If the current card's face value is 1 more than the previous card's face value,
-      # increment the consecutive_cards counter and add the current card to the run
-      if ((cards.of.suit$value[j]) == ((cards.of.suit$value[j - 1]) + 1)) {
-        consecutive.cards = consecutive.cards + 1
-        to.add = cards.of.suit %>% slice(j)
-        run = rbind(run,to.add)
-      } else {
-        # If not, reset the consecutive_cards counter and start a new run with the current card
-        consecutive.cards = 1
-        new.beginning = cards.of.suit %>% slice(j)
-        run = data.frame()
-        run = rbind(run,new.beginning)
+    if (num.cards > 1) {
+      for (j in 2:num.cards) {
+        # If the current card's face value is 1 more than the previous card's face value,
+        # increment the consecutive_cards counter and add the current card to the run
+        if ((cards.of.suit$value[j]) == ((cards.of.suit$value[j - 1]) + 1)) {
+          consecutive.cards = consecutive.cards + 1
+          to.add = cards.of.suit %>% slice(j)
+          run = rbind(run,to.add)
+        } else {
+          # If not, reset the consecutive_cards counter and start a new run with the current card
+          consecutive.cards = 1
+          new.beginning = cards.of.suit %>% slice(j)
+          run = data.frame()
+          run = rbind(run,new.beginning)
+        }
       }
     }
+
     if (consecutive.cards >= 4) {
       player.runs = rbind(player.runs,run)
       num.runs = num.runs + 1
@@ -448,13 +487,13 @@ finding.fours = function(player, total.fours, num.fours, tack_on) {
   
   #IMPLEMENT TACK-ON and check if won afterwards
   
-  #Discard a card
-  discard_result = discard_card_runs(player, partial.runs)
-  player = discard_result$v1
-  top.discard = discard_result$v2
-  discard.pile = discard_result$v3
+  # #Discard a card
+  # discard_result = discard_card_runs(player, partial.runs)
+  # player = discard_result$v1
+  # top.discard = discard_result$v2
+  # discard.pile = discard_result$v3
   
-  return(list(v1=player,v2=num.fours,v3=top.discard,v4=total.fours,v5=won,v6=discard.pile))
+  return(list(v1=player,v2=num.fours,v3=top.discard,v4=total.fours,v5=won,v6=partial.runs))
 
 }
 
@@ -473,175 +512,174 @@ discard_card_runs = function(player, partial.runs) {
   return(list(v1=player, v2=top.discard, v3=discard.pile))
 }
 
-
-
 #------------------------------------------------------------------------------#
 
 #Round 1: Three 3s
 
-p1.total.threes = 0
-p2.total.threes = 0
-p3.total.threes = 0
-p4.total.threes = 0
-total.laid.down.cards = data.frame()
-won = F
-
-init.cards = setup(12, deck)
-p1.hand = init.cards$v1
-p2.hand = init.cards$v2
-p3.hand = init.cards$v3
-p4.hand = init.cards$v4
-top.discard = init.cards$v5
-stock.pile = init.cards$v6
-discard.pile = init.cards$v7
-
-players = player.order(p1.hand,p2.hand,p3.hand,p4.hand)
-p1.hand = players$v1
-p2.hand = players$v2
-p3.hand = players$v3
-p4.hand = players$v4
-
-subround = 0 
-
-while (won == F) {
-  subround = subround + 1
-  cat("------------it is player's 1 turn--------", "\n")
-  picked.up.card = discard.or.stock(p1.hand)
-  p1.hand = picked.up.card$v1
-  p1.hand$name = p1.hand$name[1]
-  top.discard = picked.up.card$v2
-  stock.pile = picked.up.card$v3
-  discard.pile = picked.up.card$v4
-  if (p1.total.threes >= 2) {
-    tack.on = T
-  } else {
-    tack.on = F
-  }
-  p1.gameplay = finding.threes(p1.hand,p1.total.threes,total.laid.down.cards,tack.on)
-  p1.hand = p1.gameplay$v1
-  p1.total.threes = p1.gameplay$v2
-  top.discard = p1.gameplay$v3
-  total.laid.down.cards = p1.gameplay$v4 
-  won = p1.gameplay$v5
-  discard.pile = p1.gameplay$v6
-  
-  
-  
-  if (length(p1.hand$faces) == 0) {
-    print("Player 1 wins")
-    break
-  }
-  # tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
-  # tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
-  # print(tot1 + tot2)
-  
-  cat("------------it is player's 2 turn--------", "\n")
-  
-  picked.up.card = discard.or.stock(p2.hand)
-  p2.hand = picked.up.card$v1
-  p2.hand$name = p2.hand$name[1]
-  top.discard = picked.up.card$v2
-  stock.pile = picked.up.card$v3
-  discard.pile = picked.up.card$v4
-  
-  if (p2.total.threes >= 2) {
-    tack.on = T
-  } else {
-    tack.on = F
-  }
-  p2.gameplay = finding.threes(p2.hand,p2.total.threes,total.laid.down.cards,tack.on)
-  p2.hand = p2.gameplay$v1
-  p2.total.threes = p2.gameplay$v2
-  top.discard = p2.gameplay$v3
-  total.laid.down.cards = p2.gameplay$v4
-  won = p2.gameplay$v5
-  discard.pile = p2.gameplay$v6
-  
-  
-  if (length(p2.hand$faces) == 0) {
-    print("Player 2 wins")
-    break
-  }
-  # tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
-  # tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
-  # print(tot1 + tot2)
-  
-  cat("------------it is player's 3 turn--------", "\n")
-  
-  picked.up.card = discard.or.stock(p3.hand)
-  p3.hand = picked.up.card$v1
-  p3.hand$name = p3.hand$name[1]
-  top.discard = picked.up.card$v2
-  stock.pile = picked.up.card$v3
-  discard.pile = picked.up.card$v4
-  
-  if (p3.total.threes >= 2) {
-    tack.on = T
-  } else {
-    tack.on = F
-  }
-  p3.gameplay = finding.threes(p3.hand,p3.total.threes,total.laid.down.cards,tack.on)
-  p3.hand = p3.gameplay$v1
-  p3.total.threes = p3.gameplay$v2
-  top.discard = p3.gameplay$v3
-  total.laid.down.cards = p3.gameplay$v4
-  won = p3.gameplay$v5
-  discard.pile = p3.gameplay$v6
-  
-  if (length(p3.hand$faces) == 0) {
-    print("Player 3 wins")
-    break
-  }
-  # tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
-  # tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
-  # print(tot1 + tot2)
-  
-  cat("------------it is player's 4 turn--------", "\n")
-  
-  picked.up.card = discard.or.stock(p4.hand)
-  p4.hand = picked.up.card$v1
-  p4.hand$name = p4.hand$name[1]
-  top.discard = picked.up.card$v2
-  stock.pile = picked.up.card$v3
-  discard.pile = picked.up.card$v4
-  
-  if (p4.total.threes >= 2) {
-    tack.on = T
-  } else {
-    tack.on = F
-  }
-  p4.gameplay = finding.threes(p4.hand,p4.total.threes,total.laid.down.cards,tack.on)
-  p4.hand = p4.gameplay$v1
-  p4.total.threes = p4.gameplay$v2
-  top.discard = p4.gameplay$v3
-  total.laid.down.cards = p4.gameplay$v4
-  won = p4.gameplay$v5
-  discard.pile = p4.gameplay$v6
-  
-  if (length(p4.hand$faces) == 0) {
-    print("Player 4 wins")
-    break
-  }
-  # tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
-  # tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
-  # print(tot1 + tot2)
-}
-cat("this game ended in the",subround,"th round \n")
-
-all.scores = tally.score(p1.hand,p1.score,p2.hand,p2.score,p3.hand,p3.score,p4.hand,p4.score)
-p1.score = all.scores$v1
-p2.score = all.scores$v2
-p3.score = all.scores$v3
-p4.score = all.scores$v4
-
-tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
-tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
-tot1 + tot2
+# p1.total.threes = 0
+# p2.total.threes = 0
+# p3.total.threes = 0
+# p4.total.threes = 0
+# total.laid.down.cards = data.frame()
+# won = F
+# 
+# init.cards = setup(12, deck)
+# p1.hand = init.cards$v1
+# p2.hand = init.cards$v2
+# p3.hand = init.cards$v3
+# p4.hand = init.cards$v4
+# top.discard = init.cards$v5
+# stock.pile = init.cards$v6
+# discard.pile = init.cards$v7
+# 
+# players = player.order(p1.hand,p2.hand,p3.hand,p4.hand)
+# p1.hand = players$v1
+# p2.hand = players$v2
+# p3.hand = players$v3
+# p4.hand = players$v4
+# 
+# subround = 0 
+# 
+# while (won == F) {
+#   subround = subround + 1
+#   cat("------------it is player's 1 turn--------", "\n")
+#   picked.up.card = discard.or.stock(p1.hand)
+#   p1.hand = picked.up.card$v1
+#   p1.hand$name = p1.hand$name[1]
+#   top.discard = picked.up.card$v2
+#   stock.pile = picked.up.card$v3
+#   discard.pile = picked.up.card$v4
+#   if (p1.total.threes >= 2) {
+#     tack.on = T
+#   } else {
+#     tack.on = F
+#   }
+#   p1.gameplay = finding.threes(p1.hand,p1.total.threes,total.laid.down.cards,tack.on)
+#   p1.hand = p1.gameplay$v1
+#   p1.total.threes = p1.gameplay$v2
+#   top.discard = p1.gameplay$v3
+#   total.laid.down.cards = p1.gameplay$v4 
+#   won = p1.gameplay$v5
+#   discard.pile = p1.gameplay$v6
+#   
+#   
+#   
+#   if (length(p1.hand$faces) == 0) {
+#     print("Player 1 wins")
+#     break
+#   }
+#   # tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
+#   # tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
+#   # print(tot1 + tot2)
+#   
+#   cat("------------it is player's 2 turn--------", "\n")
+#   
+#   picked.up.card = discard.or.stock(p2.hand)
+#   p2.hand = picked.up.card$v1
+#   p2.hand$name = p2.hand$name[1]
+#   top.discard = picked.up.card$v2
+#   stock.pile = picked.up.card$v3
+#   discard.pile = picked.up.card$v4
+#   
+#   if (p2.total.threes >= 2) {
+#     tack.on = T
+#   } else {
+#     tack.on = F
+#   }
+#   p2.gameplay = finding.threes(p2.hand,p2.total.threes,total.laid.down.cards,tack.on)
+#   p2.hand = p2.gameplay$v1
+#   p2.total.threes = p2.gameplay$v2
+#   top.discard = p2.gameplay$v3
+#   total.laid.down.cards = p2.gameplay$v4
+#   won = p2.gameplay$v5
+#   discard.pile = p2.gameplay$v6
+#   
+#   
+#   if (length(p2.hand$faces) == 0) {
+#     print("Player 2 wins")
+#     break
+#   }
+#   # tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
+#   # tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
+#   # print(tot1 + tot2)
+#   
+#   cat("------------it is player's 3 turn--------", "\n")
+#   
+#   picked.up.card = discard.or.stock(p3.hand)
+#   p3.hand = picked.up.card$v1
+#   p3.hand$name = p3.hand$name[1]
+#   top.discard = picked.up.card$v2
+#   stock.pile = picked.up.card$v3
+#   discard.pile = picked.up.card$v4
+#   
+#   if (p3.total.threes >= 2) {
+#     tack.on = T
+#   } else {
+#     tack.on = F
+#   }
+#   p3.gameplay = finding.threes(p3.hand,p3.total.threes,total.laid.down.cards,tack.on)
+#   p3.hand = p3.gameplay$v1
+#   p3.total.threes = p3.gameplay$v2
+#   top.discard = p3.gameplay$v3
+#   total.laid.down.cards = p3.gameplay$v4
+#   won = p3.gameplay$v5
+#   discard.pile = p3.gameplay$v6
+#   
+#   if (length(p3.hand$faces) == 0) {
+#     print("Player 3 wins")
+#     break
+#   }
+#   # tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
+#   # tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
+#   # print(tot1 + tot2)
+#   
+#   cat("------------it is player's 4 turn--------", "\n")
+#   
+#   picked.up.card = discard.or.stock(p4.hand)
+#   p4.hand = picked.up.card$v1
+#   p4.hand$name = p4.hand$name[1]
+#   top.discard = picked.up.card$v2
+#   stock.pile = picked.up.card$v3
+#   discard.pile = picked.up.card$v4
+#   
+#   if (p4.total.threes >= 2) {
+#     tack.on = T
+#   } else {
+#     tack.on = F
+#   }
+#   p4.gameplay = finding.threes(p4.hand,p4.total.threes,total.laid.down.cards,tack.on)
+#   p4.hand = p4.gameplay$v1
+#   p4.total.threes = p4.gameplay$v2
+#   top.discard = p4.gameplay$v3
+#   total.laid.down.cards = p4.gameplay$v4
+#   won = p4.gameplay$v5
+#   discard.pile = p4.gameplay$v6
+#   
+#   if (length(p4.hand$faces) == 0) {
+#     print("Player 4 wins")
+#     break
+#   }
+#   # tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
+#   # tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
+#   # print(tot1 + tot2)
+# }
+# cat("this game ended in the",subround,"th round \n")
+# 
+# all.scores = tally.score(p1.hand,p1.score,p2.hand,p2.score,p3.hand,p3.score,p4.hand,p4.score)
+# p1.score = all.scores$v1
+# p2.score = all.scores$v2
+# p3.score = all.scores$v3
+# p4.score = all.scores$v4
+# 
+# tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
+# tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
+# tot1 + tot2
 
 #--------------------------------------------------------------------------------------------#
 
 #Round 2: One three, One four (34)
 
+subround = 0
 p1.total.threes = 0
 p2.total.threes = 0
 p3.total.threes = 0
@@ -675,7 +713,7 @@ p4.hand = players$v4
 
 while (won == F) {
   tack.on = F #for now
-  #subround = subround + 1
+  subround = subround + 1
   cat("------------it is player's 1 turn--------", "\n")
   picked.up.card = discard.or.stock(p1.hand)
   p1.hand = picked.up.card$v1
@@ -689,31 +727,68 @@ while (won == F) {
   #   tack.on = F
   # }
   
-  p1.gameplay.fours = finding.fours(p1.hand,total.runs,p1.total.fours,tack.on)
-  p1.hand = p1.gameplay.fours$v1
-  p1.total.fours = p1.gameplay.fours$v2
-  top.discard = p1.gameplay.fours$v3
-  total.runs = p1.gameplay.fours$v4
-  won = p1.gameplay.fours$v5
-  discard.pile = p1.gameplay.fours$v6
+  if ((p1.total.threes >= 1) & (p1.total.fours == 0)) {
+    p1.gameplay.fours = finding.fours(p1.hand,total.runs,p1.total.fours,tack.on)
+    p1.hand = p1.gameplay.fours$v1
+    p1.total.fours = p1.gameplay.fours$v2
+    top.discard = p1.gameplay.fours$v3
+    total.runs = p1.gameplay.fours$v4
+    won = p1.gameplay.fours$v5
+    parti = p1.gameplay.fours$v6
+  } else if ((p1.total.threes == 0) & (p1.total.fours >= 1)) {
+    p1.gameplay.threes = finding.threes(p1.hand,p1.total.threes,total.sets,tack.on)
+    p1.hand = p1.gameplay.threes$v1
+    p1.total.threes = p1.gameplay.threes$v2
+    top.discard = p1.gameplay.threes$v3
+    total.sets = p1.gameplay.threes$v4 
+    won = p1.gameplay.threes$v5
+    discard.pile = p1.gameplay.threes$v6
+  } else if ((p1.total.threes == 0) & (p1.total.fours == 0))  {
+    p1.gameplay.fours = finding.fours(p1.hand,total.runs,p1.total.fours,tack.on)
+    p1.hand = p1.gameplay.fours$v1
+    p1.total.fours = p1.gameplay.fours$v2
+    top.discard = p1.gameplay.fours$v3
+    total.runs = p1.gameplay.fours$v4
+    won = p1.gameplay.fours$v5
+    discard.pile = p1.gameplay.fours$v6
+    
+    p1.gameplay.threes = finding.threes(p1.hand,p1.total.threes,total.sets,tack.on,all=F)
+    p1.hand = p1.gameplay.threes$v1
+    p1.total.threes = p1.gameplay.threes$v2
+    top.discard = p1.gameplay.threes$v3
+    total.sets = p1.gameplay.threes$v4 
+    won = p1.gameplay.threes$v5
+    discard.pile = p1.gameplay.threes$v6
+  } else {
+    p1.gameplay.fours = finding.fours(p1.hand,total.runs,p1.total.fours,tack.on)
+    p1.hand = p1.gameplay.fours$v1
+    p1.total.fours = p1.gameplay.fours$v2
+    top.discard = p1.gameplay.fours$v3
+    total.runs = p1.gameplay.fours$v4
+    won = p1.gameplay.fours$v5
+    discard.pile = p1.gameplay.fours$v6
+    
+    p1.gameplay.threes = finding.threes(p1.hand,p1.total.threes,total.sets,tack.on)
+    p1.hand = p1.gameplay.threes$v1
+    p1.total.threes = p1.gameplay.threes$v2
+    top.discard = p1.gameplay.threes$v3
+    total.sets = p1.gameplay.threes$v4 
+    won = p1.gameplay.threes$v5
+    discard.pile = p1.gameplay.threes$v6
+  }
   
-  p1.gameplay.threes = finding.threes(p1.hand,p1.total.threes,total.sets,tack.on)
-  p1.hand = p1.gameplay.threes$v1
-  p1.total.threes = p1.gameplay.threes$v2
-  top.discard = p1.gameplay.threes$v3
-  total.sets = p1.gameplay.threes$v4 
-  won = p1.gameplay.threes$v5
-  discard.pile = p1.gameplay.threes$v6
-  
-  
+  discard_result = discard_card_runs(player, partial.runs)
+  player = discard_result$v1
+  top.discard = discard_result$v2
+  discard.pile = discard_result$v3
   
   if (length(p1.hand$faces) == 0) {
     print("Player 1 wins")
     break
   }
-  # tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
-  # tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
-  # print(tot1 + tot2)
+  tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces)
+  tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces)
+  print(tot1 + tot2)
   
   cat("------------it is player's 2 turn--------", "\n")
   
@@ -730,30 +805,64 @@ while (won == F) {
   #   tack.on = F
   # }
   
-  p2.gameplay.fours = finding.fours(p2.hand,total.runs,p2.total.fours,tack.on)
-  p2.hand = p2.gameplay.fours$v1
-  p2.total.fours = p2.gameplay.fours$v2
-  top.discard = p2.gameplay.fours$v3
-  total.runs = p2.gameplay.fours$v4
-  won = p2.gameplay.fours$v5
-  discard.pile = p2.gameplay.fours$v6
+  if ((p2.total.threes >= 1) & (p2.total.fours == 0)) {
+    p2.gameplay.fours = finding.fours(p2.hand,total.runs,p2.total.fours,tack.on)
+    p2.hand = p2.gameplay.fours$v1
+    p2.total.fours = p2.gameplay.fours$v2
+    top.discard = p2.gameplay.fours$v3
+    total.runs = p2.gameplay.fours$v4
+    won = p2.gameplay.fours$v5
+    discard.pile = p2.gameplay.fours$v6
+  } else if ((p2.total.threes == 0) & (p2.total.fours >= 1)) {
+    p2.gameplay.threes = finding.threes(p2.hand,p2.total.threes,total.sets,tack.on)
+    p2.hand = p2.gameplay.threes$v1
+    p2.total.threes = p2.gameplay.threes$v2
+    top.discard = p2.gameplay.threes$v3
+    total.sets = p2.gameplay.threes$v4 
+    won = p2.gameplay.threes$v5
+    discard.pile = p2.gameplay.threes$v6
+  } else if ((p2.total.threes == 0) & (p2.total.fours == 0)) {
+    p2.gameplay.fours = finding.fours(p2.hand,total.runs,p2.total.fours,tack.on)
+    p2.hand = p2.gameplay.fours$v1
+    p2.total.fours = p2.gameplay.fours$v2
+    top.discard = p2.gameplay.fours$v3
+    total.runs = p2.gameplay.fours$v4
+    won = p2.gameplay.fours$v5
+    discard.pile = p2.gameplay.fours$v6
+    
+    p2.gameplay.threes = finding.threes(p2.hand,p2.total.threes,total.sets,tack.on, all = F)
+    p2.hand = p2.gameplay.threes$v1
+    p2.total.threes = p2.gameplay.threes$v2
+    top.discard = p2.gameplay.threes$v3
+    total.sets = p2.gameplay.threes$v4 
+    won = p2.gameplay.threes$v5
+    discard.pile = p2.gameplay.threes$v6
+  } else {
+    p2.gameplay.fours = finding.fours(p2.hand,total.runs,p2.total.fours,tack.on)
+    p2.hand = p2.gameplay.fours$v1
+    p2.total.fours = p2.gameplay.fours$v2
+    top.discard = p2.gameplay.fours$v3
+    total.runs = p2.gameplay.fours$v4
+    won = p2.gameplay.fours$v5
+    discard.pile = p2.gameplay.fours$v6
+    
+    p2.gameplay.threes = finding.threes(p2.hand,p2.total.threes,total.sets,tack.on)
+    p2.hand = p2.gameplay.threes$v1
+    p2.total.threes = p2.gameplay.threes$v2
+    top.discard = p2.gameplay.threes$v3
+    total.sets = p2.gameplay.threes$v4 
+    won = p2.gameplay.threes$v5
+    discard.pile = p2.gameplay.threes$v6
+  }
   
-  p2.gameplay.threes = finding.threes(p2.hand,p2.total.threes,total.sets,tack.on)
-  p2.hand = p2.gameplay.threes$v1
-  p2.total.threes = p2.gameplay.threes$v2
-  top.discard = p2.gameplay.threes$v3
-  total.sets = p2.gameplay.threes$v4 
-  won = p2.gameplay.threes$v5
-  discard.pile = p2.gameplay.threes$v6
-  
-  
+    
   if (length(p2.hand$faces) == 0) {
     print("Player 2 wins")
     break
   }
-  # tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
-  # tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
-  # print(tot1 + tot2)
+  tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces)
+  tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces)
+  print(tot1 + tot2)
   
   cat("------------it is player's 3 turn--------", "\n")
   
@@ -770,29 +879,64 @@ while (won == F) {
   #   tack.on = F
   # }
   
-  p3.gameplay.fours = finding.fours(p3.hand,total.runs,p3.total.fours,tack.on)
-  p3.hand = p3.gameplay.fours$v1
-  p3.total.fours = p3.gameplay.fours$v2
-  top.discard = p3.gameplay.fours$v3
-  total.runs = p3.gameplay.fours$v4
-  won = p3.gameplay.fours$v5
-  discard.pile = p3.gameplay.fours$v6
+  if ((p3.total.threes >= 1) & (p3.total.fours == 0)) {
+    p3.gameplay.fours = finding.fours(p3.hand,total.runs,p3.total.fours,tack.on)
+    p3.hand = p3.gameplay.fours$v1
+    p3.total.fours = p3.gameplay.fours$v2
+    top.discard = p3.gameplay.fours$v3
+    total.runs = p3.gameplay.fours$v4
+    won = p3.gameplay.fours$v5
+    discard.pile = p3.gameplay.fours$v6
+  } else if ((p3.total.threes == 0) & (p3.total.fours >= 0)) {
+    p3.gameplay.threes = finding.threes(p3.hand,p3.total.threes,total.sets,tack.on)
+    p3.hand = p3.gameplay.threes$v1
+    p3.total.threes = p3.gameplay.threes$v2
+    top.discard = p3.gameplay.threes$v3
+    total.sets = p3.gameplay.threes$v4 
+    won = p3.gameplay.threes$v5
+    discard.pile = p3.gameplay.threes$v6
+  } else if ((p3.total.threes == 0) & (p3.total.fours == 0)) {
+    p3.gameplay.fours = finding.fours(p3.hand,total.runs,p3.total.fours,tack.on)
+    p3.hand = p3.gameplay.fours$v1
+    p3.total.fours = p3.gameplay.fours$v2
+    top.discard = p3.gameplay.fours$v3
+    total.runs = p3.gameplay.fours$v4
+    won = p3.gameplay.fours$v5
+    discard.pile = p3.gameplay.fours$v6
+    
+    p3.gameplay.threes = finding.threes(p3.hand,p3.total.threes,total.sets,tack.on, all = F)
+    p3.hand = p3.gameplay.threes$v1
+    p3.total.threes = p3.gameplay.threes$v2
+    top.discard = p3.gameplay.threes$v3
+    total.sets = p3.gameplay.threes$v4 
+    won = p3.gameplay.threes$v5
+    discard.pile = p3.gameplay.threes$v6
+  } else {
+    p3.gameplay.fours = finding.fours(p3.hand,total.runs,p3.total.fours,tack.on)
+    p3.hand = p3.gameplay.fours$v1
+    p3.total.fours = p3.gameplay.fours$v2
+    top.discard = p3.gameplay.fours$v3
+    total.runs = p3.gameplay.fours$v4
+    won = p3.gameplay.fours$v5
+    discard.pile = p3.gameplay.fours$v6
+    
+    p3.gameplay.threes = finding.threes(p3.hand,p3.total.threes,total.sets,tack.on)
+    p3.hand = p3.gameplay.threes$v1
+    p3.total.threes = p3.gameplay.threes$v2
+    top.discard = p3.gameplay.threes$v3
+    total.sets = p3.gameplay.threes$v4 
+    won = p3.gameplay.threes$v5
+    discard.pile = p3.gameplay.threes$v6
+  }
   
-  p3.gameplay.threes = finding.threes(p3.hand,p3.total.threes,total.sets,tack.on)
-  p3.hand = p3.gameplay.threes$v1
-  p3.total.threes = p3.gameplay.threes$v2
-  top.discard = p3.gameplay.threes$v3
-  total.sets = p3.gameplay.threes$v4 
-  won = p3.gameplay.threes$v5
-  discard.pile = p3.gameplay.threes$v6
   
   if (length(p3.hand$faces) == 0) {
     print("Player 3 wins")
     break
   }
-  # tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
-  # tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
-  # print(tot1 + tot2)
+  tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces)
+  tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces)
+  print(tot1 + tot2)
   
   cat("------------it is player's 4 turn--------", "\n")
   
@@ -809,29 +953,63 @@ while (won == F) {
   #   tack.on = F
   # }
   
-  p4.gameplay.fours = finding.fours(p4.hand,total.runs,p4.total.fours,tack.on)
-  p4.hand = p4.gameplay.fours$v1
-  p4.total.fours = p4.gameplay.fours$v2
-  top.discard = p4.gameplay.fours$v3
-  total.runs = p4.gameplay.fours$v4
-  won = p4.gameplay.fours$v5
-  discard.pile = p4.gameplay.fours$v6
-  
-  p4.gameplay.threes = finding.threes(p4.hand,p4.total.threes,total.sets,tack.on)
-  p4.hand = p4.gameplay.threes$v1
-  p4.total.threes = p4.gameplay.threes$v2
-  top.discard = p4.gameplay.threes$v3
-  total.sets = p4.gameplay.threes$v4 
-  won = p4.gameplay.threes$v5
-  discard.pile = p4.gameplay.threes$v6
+  if ((p4.total.threes >= 1) & (p4.total.fours == 0)) {
+    p4.gameplay.fours = finding.fours(p4.hand,total.runs,p4.total.fours,tack.on)
+    p4.hand = p4.gameplay.fours$v1
+    p4.total.fours = p4.gameplay.fours$v2
+    top.discard = p4.gameplay.fours$v3
+    total.runs = p4.gameplay.fours$v4
+    won = p4.gameplay.fours$v5
+    discard.pile = p4.gameplay.fours$v6
+  } else if ((p4.total.threes == 0) & (p4.total.fours >= 1)) {
+    p4.gameplay.threes = finding.threes(p4.hand,p4.total.threes,total.sets,tack.on)
+    p4.hand = p4.gameplay.threes$v1
+    p4.total.threes = p4.gameplay.threes$v2
+    top.discard = p4.gameplay.threes$v3
+    total.sets = p4.gameplay.threes$v4 
+    won = p4.gameplay.threes$v5
+    discard.pile = p4.gameplay.threes$v6
+  } else if ((p4.total.threes == 0) & (p4.total.fours == 0)) {
+    p4.gameplay.fours = finding.fours(p4.hand,total.runs,p4.total.fours,tack.on)
+    p4.hand = p4.gameplay.fours$v1
+    p4.total.fours = p4.gameplay.fours$v2
+    top.discard = p4.gameplay.fours$v3
+    total.runs = p4.gameplay.fours$v4
+    won = p4.gameplay.fours$v5
+    discard.pile = p4.gameplay.fours$v6
+    
+    p4.gameplay.threes = finding.threes(p4.hand,p4.total.threes,total.sets,tack.on, all = F)
+    p4.hand = p4.gameplay.threes$v1
+    p4.total.threes = p4.gameplay.threes$v2
+    top.discard = p4.gameplay.threes$v3
+    total.sets = p4.gameplay.threes$v4 
+    won = p4.gameplay.threes$v5
+    discard.pile = p4.gameplay.threes$v6
+  } else {
+    p4.gameplay.fours = finding.fours(p4.hand,total.runs,p4.total.fours,tack.on)
+    p4.hand = p4.gameplay.fours$v1
+    p4.total.fours = p4.gameplay.fours$v2
+    top.discard = p4.gameplay.fours$v3
+    total.runs = p4.gameplay.fours$v4
+    won = p4.gameplay.fours$v5
+    discard.pile = p4.gameplay.fours$v6
+    
+    p4.gameplay.threes = finding.threes(p4.hand,p4.total.threes,total.sets,tack.on)
+    p4.hand = p4.gameplay.threes$v1
+    p4.total.threes = p4.gameplay.threes$v2
+    top.discard = p4.gameplay.threes$v3
+    total.sets = p4.gameplay.threes$v4 
+    won = p4.gameplay.threes$v5
+    discard.pile = p4.gameplay.threes$v6
+  }
   
   if (length(p4.hand$faces) == 0) {
     print("Player 4 wins")
     break
   }
-  # tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
-  # tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
-  # print(tot1 + tot2)
+   tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
+   tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
+   print(tot1 + tot2)
 }
 
 all.scores = tally.score(p1.hand,p1.score,p2.hand,p2.score,p3.hand,p3.score,p4.hand,p4.score)
