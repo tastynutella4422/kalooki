@@ -165,6 +165,14 @@ finding.threes = function(player, total.threes, total.laid.down.cards, tack_on, 
   total.threes = total.threes + length(sets$v1)
   joker.cards = filter(player, faces %in% "joker")
   
+  # Convert set_of_two to partial_sets dataframe
+  partial_sets = data.frame()
+  for (i in 1:length(set_of_two)) {
+    partial = set_of_two[i]
+    partial_set = filter(player, faces %in% partial)
+    partial_sets = rbind(partial_sets, partial_set)
+  }
+  
   joker.set = F
   
   if(all == F) {
@@ -175,6 +183,7 @@ finding.threes = function(player, total.threes, total.laid.down.cards, tack_on, 
       doubles.added = rbind(jokers.to.add, to.add)
       if (length(doubles.added$order) > 0) {
         player = anti_join(player,doubles.added, by="order")
+        partial_sets = anti_join(partial_sets,doubles.added,by="order")
       }
       total.laid.down.cards = rbind(total.laid.down.cards,doubles.added)
       if (length(doubles.added$order) > 0) {
@@ -201,6 +210,7 @@ finding.threes = function(player, total.threes, total.laid.down.cards, tack_on, 
         doubles.added = rbind(jokers.to.add, to.add)
         if (length(doubles.added$order) > 0) {
           player = anti_join(player,doubles.added, by="order")
+          partial_sets = anti_join(partial_sets,doubles.added,by="order")
         }
         total.laid.down.cards = rbind(total.laid.down.cards,doubles.added)
         if (length(doubles.added$order) > 0) {
@@ -219,7 +229,7 @@ finding.threes = function(player, total.threes, total.laid.down.cards, tack_on, 
   # Check if the player has won
   if (length(player$order) == 0) {
     won = T
-    return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=discard.pile))
+    return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=partial_sets))
   }
   
   # Tack on cards
@@ -232,16 +242,16 @@ finding.threes = function(player, total.threes, total.laid.down.cards, tack_on, 
   # Check if the player has won
   if (length(player$order) == 0) {
     won = T
-    return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=discard.pile))
+    return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=partial_sets))
   }
   
   # Discard a card
-  discard_result = discard_card_sets(player, set_of_two)
-  player = discard_result$v1
-  top.discard = discard_result$v2
-  discard.pile = discard_result$v3
+  # discard_result = discard_card_sets(player, set_of_two)
+  # player = discard_result$v1
+  # top.discard = discard_result$v2
+  # discard.pile = discard_result$v3
   
-  return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=discard.pile))
+  return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=partial_sets))
 }
 
 
@@ -316,20 +326,21 @@ tack_on_cards = function(player, total.laid.down.cards) {
   return(list(v1 = player, v2 = total.laid.down.cards))
 }
 
-discard_card_sets = function(player, set_of_two) {
-  # Convert set_of_two to dataframe so that it can be removed from consideration when discarding cards
-  partial_sets = data.frame()
-  for (i in 1:length(set_of_two)) {
-    partial = set_of_two[i]
-    partial_set = filter(player, faces %in% partial)
-    partial_sets = rbind(partial_sets, partial_set)
+discard_card = function(player, partial_sets, partial_runs) {
+  no_discard = data.frame()
+  if ((length(partial_sets$order) > 0) & (length(partial_runs$order > 0))) {
+    no_discard = rbind(partial_sets, partial_runs)
+  } else if (length(partial_sets$order) == 0) {
+    no_discard = rbind(no_discard,partial_runs)
+  } else {
+    no_discard = rbind(no_discard,partial_sets)
   }
   
   # Remove jokers from consideration when discarding a card
   jokers = filter(player, faces %in% "joker")
   
   # From the remaining hand, discard the highest value card
-  no_discard = rbind(partial_sets, jokers)
+  no_discard = rbind(no_discard, jokers)
   to_discard = anti_join(player, no_discard, by="order")
   player_discard = highest.val.card(to_discard)
   player = anti_join(player, player_discard, by="order")
@@ -369,27 +380,29 @@ find.runs = function(player) {
   joker.cards = filter(player, faces %in% "joker")
   aces = filter(player, faces %in% "ace")
   aces.suits = aces$suits
+  aces.suits = unique(aces.suits)
+  print(aces.suits)
   to.ignore = rbind(joker.cards,aces)
   to.find = anti_join(player, to.ignore, by="order")
   
   # Sort the player's hand by suit and face value
   sorted.hand = to.find[order(to.find$suits,to.find$value), ]
   hand.suits = sorted.hand$suits
+  hand.suits = unique(hand.suits)
   
   # Loop through each unique suit in the sorted hand
   for (i in 1:length(hand.suits)) {
     # Get all cards with the current suit
     cards.of.suit = filter(sorted.hand, suits %in% hand.suits[i])
-    
     # Initialize variables to keep track of consecutive cards and the current run
     consecutive.cards = 1
     first.card = cards.of.suit %>% slice(1)
     run = rbind(run,first.card)
-    
+
     # Loop through the remaining cards in the suit_cards dataframe
     num.cards = length(cards.of.suit$order)
     if (num.cards > 1) {
-      for (j in 2:num.cards) {
+      for (j in 2:2) {
         # If the current card's face value is 1 more than the previous card's face value,
         # increment the consecutive_cards counter and add the current card to the run
         if ((cards.of.suit$value[j]) == ((cards.of.suit$value[j - 1]) + 1)) {
@@ -405,6 +418,7 @@ find.runs = function(player) {
         }
       }
     }
+
 
     if (consecutive.cards >= 4) {
       player.runs = rbind(player.runs,run)
@@ -431,7 +445,9 @@ find.runs = function(player) {
           }
         }
       }
-    }
+  }
+    
+
   # Return the list of runs found in the player's hand
   return(list(v1=player,v2=player.runs,v3=partial.runs,v4=num.runs))
 }
@@ -482,7 +498,7 @@ finding.fours = function(player, total.fours, num.fours, tack_on) {
   # Check if the player has won
   if (length(player$order) == 0) {
     won = T
-    return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=discard.pile))
+    return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=partial.runs))
   }
   
   #IMPLEMENT TACK-ON and check if won afterwards
@@ -495,21 +511,6 @@ finding.fours = function(player, total.fours, num.fours, tack_on) {
   
   return(list(v1=player,v2=num.fours,v3=top.discard,v4=total.fours,v5=won,v6=partial.runs))
 
-}
-
-discard_card_runs = function(player, partial.runs) {
-  # Remove jokers from consideration when discarding a card
-  jokers = filter(player, faces %in% "joker")
-  
-  # From the remaining hand, discard the highest value card
-  no_discard = rbind(partial.runs, jokers)
-  to_discard = anti_join(player, no_discard, by="order")
-  player_discard = highest.val.card(to_discard)
-  player = anti_join(player, player_discard, by="order")
-  top.discard = player_discard # Reassign top of the discard pile
-  discard.pile = rbind(discard.pile, player_discard)
-  
-  return(list(v1=player, v2=top.discard, v3=discard.pile))
 }
 
 #------------------------------------------------------------------------------#
@@ -734,7 +735,8 @@ while (won == F) {
     top.discard = p1.gameplay.fours$v3
     total.runs = p1.gameplay.fours$v4
     won = p1.gameplay.fours$v5
-    parti = p1.gameplay.fours$v6
+    partial.runs = p1.gameplay.fours$v6
+    partial.sets = data.frame()
   } else if ((p1.total.threes == 0) & (p1.total.fours >= 1)) {
     p1.gameplay.threes = finding.threes(p1.hand,p1.total.threes,total.sets,tack.on)
     p1.hand = p1.gameplay.threes$v1
@@ -742,7 +744,8 @@ while (won == F) {
     top.discard = p1.gameplay.threes$v3
     total.sets = p1.gameplay.threes$v4 
     won = p1.gameplay.threes$v5
-    discard.pile = p1.gameplay.threes$v6
+    partial.sets = p1.gameplay.threes$v6
+    partial.runs = data.frame()
   } else if ((p1.total.threes == 0) & (p1.total.fours == 0))  {
     p1.gameplay.fours = finding.fours(p1.hand,total.runs,p1.total.fours,tack.on)
     p1.hand = p1.gameplay.fours$v1
@@ -750,7 +753,7 @@ while (won == F) {
     top.discard = p1.gameplay.fours$v3
     total.runs = p1.gameplay.fours$v4
     won = p1.gameplay.fours$v5
-    discard.pile = p1.gameplay.fours$v6
+    partial.runs = p1.gameplay.fours$v6
     
     p1.gameplay.threes = finding.threes(p1.hand,p1.total.threes,total.sets,tack.on,all=F)
     p1.hand = p1.gameplay.threes$v1
@@ -758,7 +761,7 @@ while (won == F) {
     top.discard = p1.gameplay.threes$v3
     total.sets = p1.gameplay.threes$v4 
     won = p1.gameplay.threes$v5
-    discard.pile = p1.gameplay.threes$v6
+    partial.sets = p1.gameplay.threes$v6
   } else {
     p1.gameplay.fours = finding.fours(p1.hand,total.runs,p1.total.fours,tack.on)
     p1.hand = p1.gameplay.fours$v1
@@ -766,7 +769,7 @@ while (won == F) {
     top.discard = p1.gameplay.fours$v3
     total.runs = p1.gameplay.fours$v4
     won = p1.gameplay.fours$v5
-    discard.pile = p1.gameplay.fours$v6
+    partial.runs = p1.gameplay.fours$v6
     
     p1.gameplay.threes = finding.threes(p1.hand,p1.total.threes,total.sets,tack.on)
     p1.hand = p1.gameplay.threes$v1
@@ -774,11 +777,11 @@ while (won == F) {
     top.discard = p1.gameplay.threes$v3
     total.sets = p1.gameplay.threes$v4 
     won = p1.gameplay.threes$v5
-    discard.pile = p1.gameplay.threes$v6
+    partial.sets = p1.gameplay.threes$v6
   }
   
-  discard_result = discard_card_runs(player, partial.runs)
-  player = discard_result$v1
+  discard_result = discard_card(p1.hand, partial.sets, partial.runs)
+  p1.hand = discard_result$v1
   top.discard = discard_result$v2
   discard.pile = discard_result$v3
   
@@ -812,7 +815,8 @@ while (won == F) {
     top.discard = p2.gameplay.fours$v3
     total.runs = p2.gameplay.fours$v4
     won = p2.gameplay.fours$v5
-    discard.pile = p2.gameplay.fours$v6
+    partial.runs = p2.gameplay.fours$v6
+    partial.sets = data.frame()
   } else if ((p2.total.threes == 0) & (p2.total.fours >= 1)) {
     p2.gameplay.threes = finding.threes(p2.hand,p2.total.threes,total.sets,tack.on)
     p2.hand = p2.gameplay.threes$v1
@@ -820,7 +824,8 @@ while (won == F) {
     top.discard = p2.gameplay.threes$v3
     total.sets = p2.gameplay.threes$v4 
     won = p2.gameplay.threes$v5
-    discard.pile = p2.gameplay.threes$v6
+    partial.sets = p2.gameplay.threes$v6
+    partial.runs = data.frame()
   } else if ((p2.total.threes == 0) & (p2.total.fours == 0)) {
     p2.gameplay.fours = finding.fours(p2.hand,total.runs,p2.total.fours,tack.on)
     p2.hand = p2.gameplay.fours$v1
@@ -828,7 +833,7 @@ while (won == F) {
     top.discard = p2.gameplay.fours$v3
     total.runs = p2.gameplay.fours$v4
     won = p2.gameplay.fours$v5
-    discard.pile = p2.gameplay.fours$v6
+    partial.runs = p2.gameplay.fours$v6
     
     p2.gameplay.threes = finding.threes(p2.hand,p2.total.threes,total.sets,tack.on, all = F)
     p2.hand = p2.gameplay.threes$v1
@@ -836,7 +841,7 @@ while (won == F) {
     top.discard = p2.gameplay.threes$v3
     total.sets = p2.gameplay.threes$v4 
     won = p2.gameplay.threes$v5
-    discard.pile = p2.gameplay.threes$v6
+    partial.sets = p2.gameplay.threes$v6
   } else {
     p2.gameplay.fours = finding.fours(p2.hand,total.runs,p2.total.fours,tack.on)
     p2.hand = p2.gameplay.fours$v1
@@ -844,7 +849,7 @@ while (won == F) {
     top.discard = p2.gameplay.fours$v3
     total.runs = p2.gameplay.fours$v4
     won = p2.gameplay.fours$v5
-    discard.pile = p2.gameplay.fours$v6
+    partial.runs = p2.gameplay.fours$v6
     
     p2.gameplay.threes = finding.threes(p2.hand,p2.total.threes,total.sets,tack.on)
     p2.hand = p2.gameplay.threes$v1
@@ -852,8 +857,13 @@ while (won == F) {
     top.discard = p2.gameplay.threes$v3
     total.sets = p2.gameplay.threes$v4 
     won = p2.gameplay.threes$v5
-    discard.pile = p2.gameplay.threes$v6
+    partial.sets = p2.gameplay.threes$v6
   }
+  
+  discard_result = discard_card(p2.hand, partial.sets, partial.runs)
+  p2.hand = discard_result$v1
+  top.discard = discard_result$v2
+  discard.pile = discard_result$v3
   
     
   if (length(p2.hand$faces) == 0) {
@@ -886,7 +896,8 @@ while (won == F) {
     top.discard = p3.gameplay.fours$v3
     total.runs = p3.gameplay.fours$v4
     won = p3.gameplay.fours$v5
-    discard.pile = p3.gameplay.fours$v6
+    partial.runs = p3.gameplay.fours$v6
+    partial.sets = data.frame()
   } else if ((p3.total.threes == 0) & (p3.total.fours >= 0)) {
     p3.gameplay.threes = finding.threes(p3.hand,p3.total.threes,total.sets,tack.on)
     p3.hand = p3.gameplay.threes$v1
@@ -894,7 +905,8 @@ while (won == F) {
     top.discard = p3.gameplay.threes$v3
     total.sets = p3.gameplay.threes$v4 
     won = p3.gameplay.threes$v5
-    discard.pile = p3.gameplay.threes$v6
+    partial.sets = p3.gameplay.threes$v6
+    partial.runs = data.frame()
   } else if ((p3.total.threes == 0) & (p3.total.fours == 0)) {
     p3.gameplay.fours = finding.fours(p3.hand,total.runs,p3.total.fours,tack.on)
     p3.hand = p3.gameplay.fours$v1
@@ -902,7 +914,7 @@ while (won == F) {
     top.discard = p3.gameplay.fours$v3
     total.runs = p3.gameplay.fours$v4
     won = p3.gameplay.fours$v5
-    discard.pile = p3.gameplay.fours$v6
+    partial.runs = p3.gameplay.fours$v6
     
     p3.gameplay.threes = finding.threes(p3.hand,p3.total.threes,total.sets,tack.on, all = F)
     p3.hand = p3.gameplay.threes$v1
@@ -910,7 +922,7 @@ while (won == F) {
     top.discard = p3.gameplay.threes$v3
     total.sets = p3.gameplay.threes$v4 
     won = p3.gameplay.threes$v5
-    discard.pile = p3.gameplay.threes$v6
+    partial.sets = p3.gameplay.threes$v6
   } else {
     p3.gameplay.fours = finding.fours(p3.hand,total.runs,p3.total.fours,tack.on)
     p3.hand = p3.gameplay.fours$v1
@@ -918,7 +930,7 @@ while (won == F) {
     top.discard = p3.gameplay.fours$v3
     total.runs = p3.gameplay.fours$v4
     won = p3.gameplay.fours$v5
-    discard.pile = p3.gameplay.fours$v6
+    partial.runs = p3.gameplay.fours$v6
     
     p3.gameplay.threes = finding.threes(p3.hand,p3.total.threes,total.sets,tack.on)
     p3.hand = p3.gameplay.threes$v1
@@ -926,9 +938,13 @@ while (won == F) {
     top.discard = p3.gameplay.threes$v3
     total.sets = p3.gameplay.threes$v4 
     won = p3.gameplay.threes$v5
-    discard.pile = p3.gameplay.threes$v6
+    partial.sets = p3.gameplay.threes$v6
   }
   
+  discard_result = discard_card(p3.hand, partial.sets, partial.runs)
+  p3.hand = discard_result$v1
+  top.discard = discard_result$v2
+  discard.pile = discard_result$v3
   
   if (length(p3.hand$faces) == 0) {
     print("Player 3 wins")
@@ -960,7 +976,8 @@ while (won == F) {
     top.discard = p4.gameplay.fours$v3
     total.runs = p4.gameplay.fours$v4
     won = p4.gameplay.fours$v5
-    discard.pile = p4.gameplay.fours$v6
+    partial.runs = p4.gameplay.fours$v6
+    partial.sets = data.frame()
   } else if ((p4.total.threes == 0) & (p4.total.fours >= 1)) {
     p4.gameplay.threes = finding.threes(p4.hand,p4.total.threes,total.sets,tack.on)
     p4.hand = p4.gameplay.threes$v1
@@ -968,7 +985,8 @@ while (won == F) {
     top.discard = p4.gameplay.threes$v3
     total.sets = p4.gameplay.threes$v4 
     won = p4.gameplay.threes$v5
-    discard.pile = p4.gameplay.threes$v6
+    partial.sets = p4.gameplay.threes$v6
+    partial.runs = data.frame()
   } else if ((p4.total.threes == 0) & (p4.total.fours == 0)) {
     p4.gameplay.fours = finding.fours(p4.hand,total.runs,p4.total.fours,tack.on)
     p4.hand = p4.gameplay.fours$v1
@@ -976,7 +994,7 @@ while (won == F) {
     top.discard = p4.gameplay.fours$v3
     total.runs = p4.gameplay.fours$v4
     won = p4.gameplay.fours$v5
-    discard.pile = p4.gameplay.fours$v6
+    partial.runs = p4.gameplay.fours$v6
     
     p4.gameplay.threes = finding.threes(p4.hand,p4.total.threes,total.sets,tack.on, all = F)
     p4.hand = p4.gameplay.threes$v1
@@ -984,7 +1002,7 @@ while (won == F) {
     top.discard = p4.gameplay.threes$v3
     total.sets = p4.gameplay.threes$v4 
     won = p4.gameplay.threes$v5
-    discard.pile = p4.gameplay.threes$v6
+    partial.sets = p4.gameplay.threes$v6
   } else {
     p4.gameplay.fours = finding.fours(p4.hand,total.runs,p4.total.fours,tack.on)
     p4.hand = p4.gameplay.fours$v1
@@ -992,7 +1010,7 @@ while (won == F) {
     top.discard = p4.gameplay.fours$v3
     total.runs = p4.gameplay.fours$v4
     won = p4.gameplay.fours$v5
-    discard.pile = p4.gameplay.fours$v6
+    partial.runs = p4.gameplay.fours$v6
     
     p4.gameplay.threes = finding.threes(p4.hand,p4.total.threes,total.sets,tack.on)
     p4.hand = p4.gameplay.threes$v1
@@ -1000,8 +1018,14 @@ while (won == F) {
     top.discard = p4.gameplay.threes$v3
     total.sets = p4.gameplay.threes$v4 
     won = p4.gameplay.threes$v5
-    discard.pile = p4.gameplay.threes$v6
+    partial.sets = p4.gameplay.threes$v6
   }
+  
+  discard_result = discard_card(p4.hand, partial.sets, partial.runs)
+  p4.hand = discard_result$v1
+  top.discard = discard_result$v2
+  discard.pile = discard_result$v3
+  
   
   if (length(p4.hand$faces) == 0) {
     print("Player 4 wins")
