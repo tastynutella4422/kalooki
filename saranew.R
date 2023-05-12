@@ -6,7 +6,7 @@
 library(purrr)
 library(dplyr)
 
-set.seed(5)
+set.seed(3)
 
 ## 2 Decks of Cards (2-3 person game)
 
@@ -395,23 +395,23 @@ find.runs = function(player) {
     # Get all cards with the current suit
     cards.of.suit = filter(sorted.hand, suits %in% hand.suits[i])
     # Initialize variables to keep track of consecutive cards and the current run
-    consecutive.cards = 1
-    first.card = cards.of.suit %>% slice(1)
-    run = rbind(run,first.card)
+    # consecutive.cards = 1
+    # first.card = cards.of.suit %>% slice(1)
+    # run = rbind(run,first.card)
 
     # Loop through the remaining cards in the suit_cards dataframe
     num.cards = length(cards.of.suit$order)
-    if (num.cards > 1) {
-      for (j in 2:2) {
+    if (num.cards >= 3) {
+      for (j in 2:num.cards) {
         # If the current card's face value is 1 more than the previous card's face value,
         # increment the consecutive_cards counter and add the current card to the run
         if ((cards.of.suit$value[j]) == ((cards.of.suit$value[j - 1]) + 1)) {
-          consecutive.cards = consecutive.cards + 1
+        #  consecutive.cards = consecutive.cards + 1
           to.add = cards.of.suit %>% slice(j)
           run = rbind(run,to.add)
         } else {
           # If not, reset the consecutive_cards counter and start a new run with the current card
-          consecutive.cards = 1
+         # consecutive.cards = 1
           new.beginning = cards.of.suit %>% slice(j)
           run = data.frame()
           run = rbind(run,new.beginning)
@@ -420,11 +420,11 @@ find.runs = function(player) {
     }
 
 
-    if (consecutive.cards >= 4) {
+    if (length(run$order) >= 4) {
       player.runs = rbind(player.runs,run)
       num.runs = num.runs + 1
     }
-    if ((consecutive.cards == 3) & (length(aces$order) > 0)) {
+    if ((length(run$order) == 3) & (length(aces$order) > 0)) {
         first = run %>% slice(1)
         last = run %>% slice(3)
         for (k in 1:length(aces.suits)) {
@@ -498,7 +498,7 @@ finding.fours = function(player, total.fours, num.fours, tack_on) {
   # Check if the player has won
   if (length(player$order) == 0) {
     won = T
-    return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=partial.runs))
+    return(list(v1=player, v2=num.fours, v3=top.discard, v4=total.fours, v5=won, v6=partial.runs))
   }
   
   #IMPLEMENT TACK-ON and check if won afterwards
