@@ -847,6 +847,8 @@ while (won == F) {
   if (length(stock.pile$order) == 0) {
     stock.pile = discard.pile[sample(nrow(discard.pile), nrow(discard.pile), replace = FALSE), ]
     top.discard.card = stock.pile[1,] #assigns the top value of the remaining cards
+    discard.pile = data.frame()
+    discard.pile = rbind(discard.pile,top.discard.card)
   }
   picked.up.card = discard.or.stock(p2.hand)
   p2.hand = picked.up.card$v1
