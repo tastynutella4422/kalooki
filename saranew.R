@@ -3,6 +3,8 @@
 #potentially need function if stock pile runs out - would then need to have actually kept track of discard pile rather than only storing the top card
 #metrics to track across rounds
 #limitation: may not be able to prevent players who call from laying down cards on their next round
+#histogram for number of turns, probability of each player winning, histogram for distribution of scores at the end of the game
+#discuss effect of limitations on finding runs and having players be able to lay down cards if they call
 
 library(purrr)
 library(dplyr)
@@ -11,7 +13,7 @@ library(plyr)
 test.player = data.frame(faces=c("ace","king","jack","four","five","queen"), suits=c("hearts","hearts","hearts","hearts","hearts","hearts"), 
                          order=c(1,2,3,4,5,6), value=c(15,13,11,4,5,12), name=c("Player 1","Player 1","Player 1","Player 1","Player 1","Player 1"))
 
-set.seed(6)
+#Metrics to Track
 
 ## 2 Decks of Cards
 
