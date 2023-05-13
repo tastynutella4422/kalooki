@@ -938,6 +938,8 @@ while (won == F) {
   if (length(stock.pile$order) == 0) {
     stock.pile = discard.pile[sample(nrow(discard.pile), nrow(discard.pile), replace = FALSE), ]
     top.discard.card = stock.pile[1,] #assigns the top value of the remaining cards
+    discard.pile = data.frame()
+    discard.pile = rbind(discard.pile,top.discard.card)
   }
   picked.up.card = discard.or.stock(p3.hand)
   p3.hand = picked.up.card$v1
@@ -1026,6 +1028,8 @@ while (won == F) {
   if (length(stock.pile$order) == 0) {
     stock.pile = discard.pile[sample(nrow(discard.pile), nrow(discard.pile), replace = FALSE), ]
     top.discard.card = stock.pile[1,] #assigns the top value of the remaining cards
+    discard.pile = data.frame()
+    discard.pile = rbind(discard.pile,top.discard.card)
   }
   picked.up.card = discard.or.stock(p4.hand)
   p4.hand = picked.up.card$v1
@@ -1161,6 +1165,8 @@ while (won == F) {
   if (length(stock.pile$order) == 0) {
     stock.pile = discard.pile[sample(nrow(discard.pile), nrow(discard.pile), replace = FALSE), ]
     top.discard.card = stock.pile[1,] #assigns the top value of the remaining cards
+    discard.pile = data.frame()
+    discard.pile = rbind(discard.pile,top.discard.card)
   }
   picked.up.card = discard.or.stock(p1.hand)
   p1.hand = picked.up.card$v1
@@ -1180,6 +1186,7 @@ while (won == F) {
   total.runs = p1.gameplay.fours$v4
   if (length(total.runs$order)>0) {
     p1.suits = unique(total.runs$suits)
+    p1.suits = p1.suits[!p1.suits == "NA"]
   }
   won = p1.gameplay.fours$v5
   partial.runs = p1.gameplay.fours$v6
@@ -1204,6 +1211,8 @@ while (won == F) {
   if (length(stock.pile$order) == 0) {
     stock.pile = discard.pile[sample(nrow(discard.pile), nrow(discard.pile), replace = FALSE), ]
     top.discard.card = stock.pile[1,] #assigns the top value of the remaining cards
+    discard.pile = data.frame()
+    discard.pile = rbind(discard.pile,top.discard.card)
   }
   picked.up.card = discard.or.stock(p2.hand)
   p2.hand = picked.up.card$v1
@@ -1224,6 +1233,7 @@ while (won == F) {
   total.runs = p2.gameplay.fours$v4
   if (length(total.runs$order)>0) {
     p2.suits = unique(total.runs$suits)
+    p2.suits = p2.suits[!p2.suits == "NA"]
   }
   won = p2.gameplay.fours$v5
   partial.runs = p2.gameplay.fours$v6
@@ -1248,6 +1258,8 @@ while (won == F) {
   if (length(stock.pile$order) == 0) {
     stock.pile = discard.pile[sample(nrow(discard.pile), nrow(discard.pile), replace = FALSE), ]
     top.discard.card = stock.pile[1,] #assigns the top value of the remaining cards
+    discard.pile = data.frame()
+    discard.pile = rbind(discard.pile,top.discard.card)
   }
   picked.up.card = discard.or.stock(p3.hand)
   p3.hand = picked.up.card$v1
@@ -1268,6 +1280,7 @@ while (won == F) {
   total.runs = p3.gameplay.fours$v4
   if (length(total.runs$order)>0) {
     p3.suits = unique(total.runs$suits)
+    p3.suits = p3.suits[!p3.suits == "NA"]
   }
   won = p3.gameplay.fours$v5
   partial.runs = p3.gameplay.fours$v6
@@ -1292,6 +1305,8 @@ while (won == F) {
   if (length(stock.pile$order) == 0) {
     stock.pile = discard.pile[sample(nrow(discard.pile), nrow(discard.pile), replace = FALSE), ]
     top.discard.card = stock.pile[1,] #assigns the top value of the remaining cards
+    discard.pile = data.frame()
+    discard.pile = rbind(discard.pile,top.discard.card)
   }
   picked.up.card = discard.or.stock(p4.hand)
   p4.hand = picked.up.card$v1
@@ -1312,6 +1327,7 @@ while (won == F) {
   total.runs = p4.gameplay.fours$v4
   if (length(total.runs$order)>0) {
     p4.suits = unique(total.runs$suits)
+    p4.suits = p4.suits[!p4.suits == "NA"]
   }
   won = p4.gameplay.fours$v5
   partial.runs = p4.gameplay.fours$v6
