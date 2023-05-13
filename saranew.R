@@ -398,6 +398,7 @@ find.runs = function(player) {
   for (i in 1:length(hand.suits)) {
     # Get all cards with the current suit
     cards.of.suit = filter(sorted.hand, suits %in% hand.suits[i])
+    run = data.frame()
     # Initialize variables to keep track of consecutive cards and the current run
     # consecutive.cards = 1
     
@@ -461,16 +462,13 @@ find.runs = function(player) {
       jokers.to.add = joker.cards %>% slice(1)
       new.run = rbind(jokers.to.add, run)
       if (length(new.run$order) > 0) {
-        player = anti_join(player,new.run, by="order")
         cat(player$name[1],"laid down a joker in combination with a run of 3 cards: \n")
         print(new.run)
       }
       player.runs = rbind(player.runs,new.run)
-      partial.runs = anti_join(partial.runs,to.add,by="order")
       #}
-      num.fours = num.fours + min.val
-    }
-    if (length(run$order) == 3) {
+      num.runs = num.runs + 1
+    } else {
       partial.runs = rbind(partial.runs,run)
     }
   }

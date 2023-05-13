@@ -40,3 +40,11 @@ discard_result = discard_card(p2.hand, partial.sets, partial.runs, option)
 p2.hand = discard_result$v1
 top.discard = discard_result$v2
 discard.pile = discard_result$v3
+
+
+
+test.player = data.frame(faces=c("four","two","two","joker","four","three","three","three","four"), 
+                         suits=c("spades","hearts","clubs","NA","diamonds","clubs","diamonds","hearts","hearts"), 
+                         order=c(1,2,3,4,5,6,7,8,9), value=c(4,2,2,50,4,3,3,3,4), 
+                         name=c("Player 1","Player 1","Player 1","Player 1","Player 1","Player 1","Player 1","Player 1","Player 1"))
+find.runs(test.player)
