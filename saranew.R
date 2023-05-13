@@ -13,7 +13,8 @@ library(plyr)
 test.player = data.frame(faces=c("ace","king","jack","four","five","queen"), suits=c("hearts","hearts","hearts","hearts","hearts","hearts"), 
                          order=c(1,2,3,4,5,6), value=c(15,13,11,4,5,12), name=c("Player 1","Player 1","Player 1","Player 1","Player 1","Player 1"))
 
-#Metrics to Track
+# Metrics to Track
+
 
 ## 2 Decks of Cards
 
@@ -427,12 +428,15 @@ find.runs = function(player) {
   for (i in 1:length(hand.suits)) {
     # Get all cards with the current suit
     cards.of.suit = filter(sorted.hand, suits %in% hand.suits[i])
+    
     run = data.frame()
+    new.beginning = data.frame()
     # Initialize variables to keep track of consecutive cards and the current run
     # consecutive.cards = 1
     
     # Loop through the remaining cards in the suit_cards dataframe
     num.cards = length(cards.of.suit$order)
+    
     if (num.cards >= 3) {
       for (j in 2:num.cards) {
         # If the current card's face value is 1 more than the previous card's face value,
@@ -457,11 +461,11 @@ find.runs = function(player) {
       }
     }
     
-    
     if (length(run$order) >= 4 & (length(aces$order) == 0)) {
       player.runs = rbind(player.runs,run)
       num.runs = num.runs + 1
     }
+    
     if ((length(run$order) >= 3) & (length(aces$order) > 0)) {
       first = run %>% slice(1)
       last = run %>% slice(length(run$order))
@@ -472,17 +476,21 @@ find.runs = function(player) {
           aces = anti_join(add.ace,aces,by="order")
           player.runs = rbind(player.runs,new.four)
           num.runs = num.runs + 1
+          
         } else if ((aces.suits[k] == last$suits) & (last$faces == "king")) {
           add.ace = aces %>% slice(k)
           new.four = rbind(run,add.ace)
           aces = anti_join(add.ace,aces,by="order")
           player.runs = rbind(player.runs,new.four)
           num.runs = num.runs + 1
+          
         } else {
           partial.runs = rbind(partial.runs,run)
+          
         }
       }
     }
+    
     #check if there are any jokers to add to partial run
     if ((length(run$order) >= 3) & (length(joker.cards$order) > 0)) {
       #lengths = c(length(partial.runs$order), length(joker.cards$order))
@@ -497,7 +505,6 @@ find.runs = function(player) {
       partial.runs = rbind(partial.runs,run)
     }
   }
-  
   # Return the list of runs found in the player's hand
   return(list(v1=player,v2=player.runs,v3=partial.runs,v4=num.runs))
 }
@@ -1654,10 +1661,11 @@ while (won == F) {
     print("Player 4 wins")
     break
   }
-  tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces)
-  tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.runs$faces) + length(total.sets$faces)
-  print(tot1 + tot2)
+  # tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces)
+  # tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.runs$faces) + length(total.sets$faces)
+  # print(tot1 + tot2)
 }
+cat("this game ended in the",subround,"th round \n")
 
 all.scores = tally.score(p1.hand,p1.score,p2.hand,p2.score,p3.hand,p3.score,p4.hand,p4.score)
 p1.score = all.scores$v1
@@ -1665,9 +1673,9 @@ p2.score = all.scores$v2
 p3.score = all.scores$v3
 p4.score = all.scores$v4
 
-tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
-tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
-tot1 + tot2
+# tot1 = length(discard.pile$faces) +length(p1.hand$faces) +length(p2.hand$faces) +length(p3.hand$faces) 
+# tot2 = length(p4.hand$faces) +length(stock.pile$faces) + length(total.laid.down.cards$faces) 
+# tot1 + tot2
 
 
 #------------------------------------------------------------------------------#
