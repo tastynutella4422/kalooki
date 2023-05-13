@@ -285,7 +285,6 @@ finding.threes = function(player, total.threes, total.laid.down.cards, tack_on, 
   return(list(v1=player, v2=total.threes, v3=top.discard, v4=total.laid.down.cards, v5=won, v6=partial_sets))
 }
 
-
 find_sets = function(player) {
   set.of.three = c()
   set.of.two = c()
@@ -489,11 +488,14 @@ find.runs = function(player) {
     }
     
     #check if there are any jokers to add to partial run
-    if ((length(run$order) >= 3) & (length(joker.cards$order) > 0)) {
+    else if ((length(run$order) >= 3) & (length(joker.cards$order) > 0)) {
       #lengths = c(length(partial.runs$order), length(joker.cards$order))
       #min.val = min(lengths)
       #for (y in 1:min.val) {
       jokers.to.add = joker.cards %>% slice(1)
+      last = run %>% slice(length(run$order))
+      jokers.to.add$value = last$value + 1
+      jokers.to.add$suits = last$suits
       new.run = rbind(jokers.to.add, run)
       player.runs = rbind(player.runs,new.run)
       #}
