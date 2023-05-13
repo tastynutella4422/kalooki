@@ -530,11 +530,11 @@ finding.fours = function(player, total.fours, num.fours, tack_on) {
   # }
 
   # Lay down fours
-  if (been.used == F) {
-    laying.down = lay_down_fours(player,player.runs,total.runs) 
-    player = laying.down$v1
-    total.fours = laying.down$v2
-  }
+  #
+  laying.down = lay_down_fours(player,player.runs,total.runs) 
+  player = laying.down$v1
+  total.fours = laying.down$v2
+  #
     
   # Check if the player has won
   if (length(player$order) == 0) {
