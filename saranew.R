@@ -531,103 +531,81 @@ lay_down_fours = function(player, player.runs, total.runs) {
   return(list(v1 = player, v2 = total.runs, v3 = add.to.order))
 }
 
-tack_on_run <- function(player, total_runs) {
+tack_on_run = function(player, total.runs) {
+  num.runs = length(unique(total.runs$add.order))
   num.tack.on = 0
-  can_tack_on <- function(card, run) {
-    same_suit <- card$suits == run$suits[1]
-    next_higher <- card$value == max(run$value) + 1
-    next_lower <- card$value == min(run$value) - 1
-    is_joker <- card$faces == "joker"
-    adjacent_jokers <- any(diff(run$value[run$faces == "joker"]) == 1)
-    
-    if (is_joker & !adjacent_jokers) {
-      return(TRUE)
-    }
-    
-    if (same_suit) {
-      if (next_higher & !any(run$faces == "ace")) {
-        return(TRUE)
-      }
-      if (next_lower & !any(run$faces == "ace")) {
-        return(TRUE)
-      }
-    }
-    
-    joker_in_run = any(run$faces == "joker")
-    if (joker_in_run) {
-      joker_idx = which(run$faces == "joker")
-      joker_as_lower = run$value[joker_idx - 1] + 1
-      joker_as_upper = run$value[joker_idx + 1] - 1
-      joker_as_higher = run$value[joker_idx - 1] + 2
-      
-      if ((joker_idx > 1) & (joker_idx < nrow(run))) {
-        if (card$value == joker_as_lower | card$value == joker_as_upper) {
-          return(TRUE)
-        }
-      }
-      if ((length(run$suits) > 0) & (length(card$order) > 0)) {
-        if ((card$value == joker_as_higher) & (card$suits == run$suits[1])) {
-          return(TRUE)
-        }
-        else {
-        }
-      }
-
-    }
-    return(FALSE)
-  }
-  i = 1
-  while (i <=nrow(player)) {
-    card = player[i, ]
-    for (j in unique(total_runs$add.order)) {
-      run = total_runs[total_runs$add.order == j, ]
-      if (can_tack_on(card, run)) {
-        front.joker = run$faces[1]=="joker"
-        end.joker = run$faces[length(run$order)]=="joker"
-        if (any(run$faces == "joker") & (card$value == 50) & ((run$face[length(run)-2])=="joker") |(run$face[2] =="joker")) {
-          card$suits = run$suits[1]
-          card$value = run$value[1]-1
-          card$add.order <- j
-          total_runs <- rbind(total_runs, card)
-          total_runs <- total_runs[order(total_runs$add.order, total_runs$value), ]
+  for (i in 1:num.runs) {
+    joker.cards = filter(player, faces %in% "joker")
+    player.no.jokers = anti_join(player,joker.cards,by="order")
+    cur.run = filter(total.runs, add.order %in% i)
+    suit.cur.run = unique(cur.run$suits)
+    first.card = cur.run %>% slice(1)
+    last.card = cur.run %>% slice(length(cur.run$order))
+    cards.of.suit = filter(player.no.jokers, suits %in% suit.cur.run)
+    cards.of.suit.values = unique(cards.of.suit$values)
+    if (length(cards.of.suit.values) > 0) {
+      for (j in 1:length(cards.of.suit.values)) {
+        if (cards.of.suit.values[j] == (first.card$value - 1)) {
+          total.runs = anti_join(total.runs,cur.run, by="order")
+          card.to.add = filter(cards.of.suit, value %in% cards.of.suit.values[j])
+          card.to.add = card.to.add %>% slice(1)
+          card.to.add$add.order = i
+          cur.run = rbind(card.to.add,cur.run)
+          total.runs = rbind(cur.run,total.runs)
+          player = anti_join(player,card.to.add, by="order")
           num.tack.on = num.tack.on + 1
-        } 
-        else if((card$faces=="joker")&((front.joker) | (end.joker))) {
-          card$suits = run$suits[1]
-          if (!front.joker & !end.joker) {
-            card$value = run$value[length(run$order)] + 1
-          } 
-          else if (front.joker & !end.joker) {
-            card$value = run$value[length(run$order)] + 1
-          } 
-          else {
-            card$value = run$value[1]-1
-          }
-          print(total_runs)
-          print(card)
-          card$add.order <- j
-          total_runs <- rbind(total_runs, card)
-          num.tack.on = num.tack.on + 1
-          total_runs <- total_runs[order(total_runs$add.order, total_runs$value), ]
-        }
-        else {
-          card$add.order <- j
-          total_runs <- rbind(total_runs, card)
-          total_runs <- total_runs[order(total_runs$add.order, total_runs$value), ]
+        } else if (cards.of.suit.values[j] == (last.card$value + 1)) {
+          total.runs = anti_join(total.runs,cur.run, by="order")
+          card.to.add = filter(cards.of.suit, value %in% cards.of.suit.values[j])
+          card.to.add = card.to.add %>% slice(1)
+          card.to.add$add.order = i
+          cur.run = rbind(cur.run,card.to.add)
+          total.runs = rbind(cur.run,total.runs)
+          player = anti_join(player,card.to.add, by="order")
           num.tack.on = num.tack.on + 1
         }
-        player <- player[-i, ]
-        #i = i+1
-        break 
-      } 
-      else {
-        i = i + 1
+      }
+      if (length(joker.cards$order) > 0) {
+        if ((first.card$faces != "joker") & (last.card$faces != "joker")) {
+          total.runs = anti_join(total.runs,cur.run,by="order")
+          card.to.add = filter(joker.cards, face %in% "joker")
+          card.to.add = card.to.add %>% slice(1)
+          card.to.add$add.order = i
+          cur.run = rbind(cur.run, card.to.add)
+          total.runs = rbind(cur.run,total.runs)
+          player = anti_join(player,card.to.add,by="order")
+          num.tack.on = num.tack.on + 1
+          joker.cards = anti_join(joker.cards,card.to.add)
+        } else if ((first.card$faces == "joker") & (last.card$faces != "joker")) {
+          total.runs = anti_join(total.runs,cur.run,by="order")
+          card.to.add = filter(joker.cards, face %in% "joker")
+          card.to.add = card.to.add %>% slice(1)
+          card.to.add$add.order = i
+          cur.run = rbind(cur.run, card.to.add)
+          total.runs = rbind(cur.run,total.runs)
+          player = anti_join(player,card.to.add,by="order")
+          num.tack.on = num.tack.on + 1
+          joker.cards = anti_join(joker.cards,card.to.add)
+        } else if ((first.card$faces != "joker") & (last.card$faces == "joker")) {
+          total.runs = anti_join(total.runs,cur.run,by="order")
+          card.to.add = filter(joker.cards, face %in% "joker")
+          card.to.add = card.to.add %>% slice(1)
+          card.to.add$add.order = i
+          cur.run = rbind(card.to.add,cur.run)
+          total.runs = rbind(cur.run,total.runs)
+          player = anti_join(player,card.to.add,by="order")
+          num.tack.on = num.tack.on + 1
+          joker.cards = anti_join(joker.cards,card.to.add)
+        } else {
+          
+        }
       }
     }
   }
-  player = anti_join(player,total_runs, by = "order")
-  return(list(v1=player, v2=total_runs, v3=num.tack.on))
+  return(list(v1 = player, v2 = total.runs, v3 = num.tack.on))
 }
+
+
 
 finding.fours = function(player, total.fours, num.fours, tack_on) {
   player.tacked = 0
