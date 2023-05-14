@@ -681,8 +681,10 @@ calling = function(type="both",other.p1,other.p2,p1.calls,p2.calls) {
       p1.sets = find_sets(sim.p1.hand)
       threes = p1.sets$v1
       partial.sets = p1.sets$v2
-      if ((discard.face %in% threes) | (discard.face %in% partial.sets)) {
-        help.p1 = T
+      if (length(discard.face) > 0) {
+        if (((discard.face %in% threes) | (discard.face %in% partial.sets))) {
+          help.p1 = T
+        }
       }
     } else {
       return(list(v1=other.p1, v2=other.p2, v3=call, v4=discard.pile, v5=top.discard, v6=stock.pile, v7=p1.calls, v8=p2.calls))
@@ -691,8 +693,10 @@ calling = function(type="both",other.p1,other.p2,p1.calls,p2.calls) {
       p2.sets = find_sets(sim.p2.hand)
       threes = p2.sets$v1
       partial.sets = p2.sets$v2
-      if ((discard.face %in% threes) | (discard.face %in% partial.sets)) {
-        help.p2 = T
+      if ((length(discard.face) > 0)) {
+        if (((discard.face %in% threes) | (discard.face %in% partial.sets))) {
+          help.p2 = T
+        }
       }
     } else {
       return(list(v1=other.p1, v2=other.p2, v3=call, v4=discard.pile, v5=top.discard, v6=stock.pile, v7=p1.calls, v8=p2.calls))
@@ -705,8 +709,10 @@ calling = function(type="both",other.p1,other.p2,p1.calls,p2.calls) {
       partial.runs = p1.runs$v3
       fours.orders = fours$order
       partial.orders = partial.runs$order
-      if ((discard.order %in% fours.orders) | (discard.order %in% partial.orders)) {
-        help.p1 = T
+      if ((length(discard.order) > 0)) {
+        if (((discard.order %in% fours.orders) | (discard.order %in% partial.orders))) {
+          help.p1 = T
+        }
       }
     } else {
       return(list(v1=other.p1, v2=other.p2, v3=call, v4=discard.pile, v5=top.discard, v6=stock.pile, v7=p1.calls, v8=p2.calls))
@@ -717,8 +723,10 @@ calling = function(type="both",other.p1,other.p2,p1.calls,p2.calls) {
       partial.runs = p2.runs$v3
       fours.orders = fours$order
       partial.orders = partial.runs$order
-      if ((discard.order %in% fours.orders) | (discard.order %in% partial.orders)) {
-        help.p2 = T
+      if ((length(discard.order) > 0)) {
+        if (((discard.order %in% fours.orders) | (discard.order %in% partial.orders))) {
+          help.p2 = T
+        }
       }
     } else {
       return(list(v1=other.p1, v2=other.p2, v3=call, v4=discard.pile, v5=top.discard, v6=stock.pile, v7=p1.calls, v8=p2.calls))
@@ -730,16 +738,20 @@ calling = function(type="both",other.p1,other.p2,p1.calls,p2.calls) {
       p1.sets = find_sets(sim.p1.hand)
       threes = p1.sets$v1
       partial.sets = p1.sets$v2
-      if ((discard.face %in% threes) | (discard.face %in% partial.sets)) {
-        help.p1 = T
+      if ((length(discard.face) > 0)) {
+        if (((discard.face %in% threes) | (discard.face %in% partial.sets))) {
+          help.p1 = T
+        }
       }
       p1.runs = find.runs(sim.p1.hand)
       fours = p1.runs$v2
       partial.runs = p1.runs$v3
       fours.orders = fours$order
       partial.orders = partial.runs$order
-      if ((discard.order %in% fours.orders) | (discard.order %in% partial.orders)) {
-        help.p1 = T
+      if ((length(discard.order) > 0)) {
+        if (((discard.order %in% fours.orders) | (discard.order %in% partial.orders))) {
+          help.p1 = T
+        }
       }
     } else {
       return(list(v1=other.p1, v2=other.p2, v3=call, v4=discard.pile, v5=top.discard, v6=stock.pile, v7=p1.calls, v8=p2.calls))
@@ -749,17 +761,20 @@ calling = function(type="both",other.p1,other.p2,p1.calls,p2.calls) {
       p2.sets = find_sets(sim.p2.hand)
       threes = p2.sets$v1
       partial.sets = p2.sets$v2
-      if ((discard.face %in% threes) | (discard.face %in% partial.sets)) {
-        help.p2 = T
+      if ((length(discard.face) > 0)) {
+        if (((discard.face %in% threes) | (discard.face %in% partial.sets))) {
+          help.p2 = T
+        }
       }
-      
       p2.runs = find.runs(sim.p2.hand)
       fours = p2.runs$v2
       partial.runs = p2.runs$v3
       fours.orders = fours$order
       partial.orders = partial.runs$order
-      if ((discard.order %in% fours.orders) | (discard.order %in% partial.orders)) {
-        help.p2 = T
+      if ((length(discard.order) > 0)) {
+        if (((discard.order %in% fours.orders) | (discard.order %in% partial.orders))) {
+          help.p2 = T
+        }
       }
     } else {
       return(list(v1=other.p1, v2=other.p2, v3=call, v4=discard.pile, v5=top.discard, v6=stock.pile, v7=p1.calls, v8=p2.calls))
@@ -2088,7 +2103,7 @@ while (won == F) {
     stock.pile = anti_join(stock.pile, top.stock, by="order")
   }
 
-  if (p3.total.threes >= 2) {
+  if (p3.total.fours >= 2) {
     tack.on = T
   } else {
     tack.on = F
@@ -2174,7 +2189,7 @@ while (won == F) {
     stock.pile = anti_join(stock.pile, top.stock, by="order")
   }
 
-  if (p4.total.threes >= 2) {
+  if (p4.total.fours >= 2) {
     tack.on = T
   } else {
     tack.on = F
@@ -2217,7 +2232,7 @@ p2.score = all.scores$v2
 p3.score = all.scores$v3
 p4.score = all.scores$v4
 
-p1.scores = append(p1.scores.p1.score)
+p1.scores = append(p1.scores,p1.score)
 p2.scores = append(p2.scores,p2.score)
 p3.scores = append(p3.scores,p3.score)
 p4.scores = append(p4.scores,p4.score)
