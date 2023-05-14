@@ -562,6 +562,98 @@ finding.fours = function(player, total.fours, num.fours, tack_on) {
   
 }
 
+tack_on_run <- function(player, total_runs) {
+  can_tack_on <- function(card, run) {
+    same_suit <- card$suits == run$suits[1]
+    next_higher <- card$value == max(run$value) + 1
+    next_lower <- card$value == min(run$value) - 1
+    is_joker <- card$faces == "joker"
+    adjacent_jokers <- any(diff(run$value[run$faces == "joker"]) == 1)
+    
+    if (is_joker && !adjacent_jokers) {
+      return(TRUE)
+    }
+    
+    if (same_suit) {
+      if (next_higher && !any(run$faces == "Ace")) {
+        return(TRUE)
+      }
+      if (next_lower && !any(run$faces == "Ace")) {
+        return(TRUE)
+      }
+    }
+    
+    joker_in_run = any(run$faces == "joker")
+    if (joker_in_run) {
+      joker_idx = which(run$faces == "joker")
+      joker_as_lower = run$value[joker_idx - 1] + 1
+      joker_as_upper = run$value[joker_idx + 1] - 1
+      joker_as_higher = run$value[joker_idx - 1] + 2
+      
+      if ((joker_idx > 1) && (joker_idx < nrow(run))) {
+        if (card$value == joker_as_lower || card$value == joker_as_upper) {
+          return(TRUE)
+        }
+      }
+      if ((card$value == joker_as_higher) && (card$suits == run$suits[1])) {
+        return(TRUE)
+      }
+      else {
+      }
+    }
+    return(FALSE)
+  }
+  i = 1
+  while (i <=nrow(player)) {
+    card = player[i, ]
+    for (j in unique(total_runs$add.order)) {
+      run = total_runs[total_runs$add.order == j, ]
+      if (can_tack_on(card, run)) {
+        front.joker = run$faces[1]=="joker"
+        end.joker = run$faces[length(run$order)]=="joker"
+        if (any(run$faces == "joker") & (card$value == 50) & ((run$face[length(run)-2])=="joker") |(run$face[2] =="joker")) {
+          card$suits = run$suits[1]
+          card$value = run$value[1]-1
+          card$add.order <- j
+          total_runs <- rbind(total_runs, card)
+          total_runs <- total_runs[order(total_runs$add.order, total_runs$value), ]
+        } 
+        else if((card$faces=="joker")&((front.joker) | (end.joker))) {
+          print("this is happening elias berhane")
+          card$suits = run$suits[1]
+          if (!front.joker & !end.joker) {
+            card$value = run$value[length(run$order)] + 1
+          } 
+          else if (front.joker & !end.joker) {
+            card$value = run$value[length(run$order)] + 1
+          } 
+          else {
+            card$value = run$value[1]-1
+          }
+          print(total_runs)
+          print(card)
+          card$add.order <- j
+          total_runs <- rbind(total_runs, card)
+          total_runs <- total_runs[order(total_runs$add.order, total_runs$value), ]
+        }
+        else {
+          card$add.order <- j
+          total_runs <- rbind(total_runs, card)
+          total_runs <- total_runs[order(total_runs$add.order, total_runs$value), ]
+        }
+        player <- player[-i, ]
+        #i = i+1
+        break 
+      } 
+      else {
+        i = i + 1
+      }
+    }
+  }
+  player = anti_join(player,total_runs, by = "order")
+  return(list(v1=player, v2=total_runs))
+}
+
 #function to determine if anyone is "calling" the discard card (not person who has next turn)
 #if call is successful, pick up discard card + 1 from stock pile, can't lay down any cards or tack on
 #limit of 3 calls per game, once you lay down cards you can't call anymore
